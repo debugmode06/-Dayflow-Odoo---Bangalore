@@ -23,9 +23,9 @@ export const LeaveBalanceIntelligence = ({ leaves = [], activeRequest = null }) 
   const calculateBalance = (typeKey) => {
     const allowance = ALLOWANCES[typeKey] || 0;
     
-    // Pending/rejected requests must not incorrectly reduce the balance. Only count approved.
+    // Deduct both approved and pending requests from the balance to reflect real-time usage
     const used = leaves
-      .filter(l => l.status === 'approved' && TYPE_MAPPING[l.type] === typeKey)
+      .filter(l => (l.status === 'approved' || l.status === 'pending') && TYPE_MAPPING[l.type] === typeKey)
       .reduce((total, l) => {
         const diffDays = calculateLeaveDuration(l.startDate, l.endDate);
         return total + diffDays;
