@@ -12,6 +12,8 @@ export {
   fetchLeaveImpactAIExplanation,
 } from './services/workforceAiService';
 
+export { HRCommandCenterPage } from './pages/HRCommandCenterPage';
+
 export const MODULE_NAME = 'workforce';
 export default {
   name: MODULE_NAME,

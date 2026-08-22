@@ -1,0 +1,273 @@
+.hr-dashboard-container {
+  padding: 2rem;
+  background-color: #f8fafc; /* Tailwind slate-50 equivalent */
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1e293b;
+}
+
+.hr-dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.hr-dashboard-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+}
+
+.hr-dashboard-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+/* Grid Layouts */
+.hr-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.hr-main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .hr-main-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* Base Card Style */
+.hr-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hr-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Metric Card */
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.metric-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: #f1f5f9;
+  color: #3b82f6;
+}
+
+.metric-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Needs Attention Section */
+.needs-attention-card {
+  border: 1px solid #fecaca;
+  background: linear-gradient(to bottom right, #ffffff, #fef2f2);
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #fee2e2;
+  gap: 1rem;
+}
+
+.alert-icon {
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.alert-desc {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.empty-state-icon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Workforce Availability (Percentage) */
+.availability-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.availability-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 8px solid #3b82f6;
+  margin: 0 auto 1.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f172a;
+  position: relative;
+}
+
+.availability-circle::after {
+  content: '';
+  position: absolute;
+  top: -8px; left: -8px; right: -8px; bottom: -8px;
+  border-radius: 50%;
+  border: 8px solid #e2e8f0;
+  z-index: -1;
+}
+
+.availability-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.avail-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.avail-stat-row:last-child {
+  border-bottom: none;
+}
+
+.avail-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+}
+
+.avail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot-present { background-color: #10b981; }
+.dot-leave { background-color: #f59e0b; }
+.dot-absent { background-color: #ef4444; }
+
+.avail-val {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Skeleton Loading */
+.skeleton {
+  animation: skeleton-loading 1.2s ease-in-out infinite alternate;
+  background-color: #e2e8f0;
+  border-radius: 8px;
+}
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+}
+.skeleton-title { width: 50%; height: 1.5rem; margin-bottom: 1rem; }
+.skeleton-circle { width: 40px; height: 40px; border-radius: 50%; }
+
+@keyframes skeleton-loading {
+  0% { background-color: #e2e8f0; }
+  100% { background-color: #cbd5e1; }
+}
+
+/* Coming Next Card */
+.coming-next-card {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px dashed #cbd5e1;
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+}
+
+.pulse-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
