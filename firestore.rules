@@ -66,10 +66,10 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid || 
         isHR()
       );
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'pending';
       allow update: if isSignedIn() && (
-        (resource.data.userId == request.auth.uid && resource.data.status == 'pending') ||
-        isHR()
+        isHR() || 
+        (resource.data.userId == request.auth.uid && resource.data.status == 'pending' && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'hrComment']))
       );
       allow delete: if isHR();
     }

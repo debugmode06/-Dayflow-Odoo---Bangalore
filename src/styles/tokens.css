@@ -14,11 +14,11 @@
   --text-tertiary: #94A3B8;
   --text-inverse: #FFFFFF;
 
-  /* Primary Brand Accent */
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-primary-light: #EFF6FF;
-  --color-primary-border: #BFDBFE;
+  /* Primary Brand Accent (Odoo Purple) */
+  --color-primary: #84647C;
+  --color-primary-hover: #6E5166;
+  --color-primary-light: #F5EEF2;
+  --color-primary-border: #EEDDE6;
 
   /* Status Colors */
   --color-success: #10B981;
@@ -49,7 +49,7 @@
   /* Borders & Dividers */
   --border-color: #E2E8F0;
   --border-color-subtle: #F1F5F9;
-  --border-color-focus: #2563EB;
+  --border-color-focus: #84647C;
 
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
