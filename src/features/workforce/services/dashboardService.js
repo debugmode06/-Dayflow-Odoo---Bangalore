@@ -24,31 +24,41 @@ class DashboardService {
       });
 
       // Fetch today's attendance
-      // Assuming attendance is stored with a date field or timestamp
       const attendanceRef = collection(db, 'attendance');
-      // Note: A composite index might be needed depending on the real query structure, 
-      // but for this example we'll fetch today's attendance.
-      // If we don't have indexes, we can just fetch all and filter client side if small,
-      // or assume a date string format like 'YYYY-MM-DD'.
-      const todayString = today.toISOString().split('T')[0];
-      const attendanceQuery = query(attendanceRef, where('date', '==', todayString));
-      const attendanceSnapshot = await getDocs(attendanceQuery);
+      const attendanceSnapshot = await getDocs(attendanceRef);
       
       let presentToday = 0;
       let absentToday = 0;
       const attendanceAlerts = [];
 
+      // Helper to handle both Firebase Timestamp and ISO strings safely
+      const parseDate = (val) => {
+        if (!val) return null;
+        if (typeof val.toDate === 'function') return val.toDate();
+        return new Date(val);
+      };
+
+      const isSameDay = (d1, d2) => {
+        return d1.getFullYear() === d2.getFullYear() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getDate() === d2.getDate();
+      };
+
       attendanceSnapshot.forEach(doc => {
         const data = doc.data();
-        if (data.status === 'Present') {
-          presentToday++;
-          if (data.checkInTime && data.late) {
-            attendanceAlerts.push({ id: doc.id, message: `${data.employeeName || 'An employee'} arrived late.` });
-          }
-        } else if (data.status === 'Absent') {
-          absentToday++;
-          if (!data.excused) {
-            attendanceAlerts.push({ id: doc.id, message: `${data.employeeName || 'An employee'} is absent without leave.` });
+        const attendanceDate = parseDate(data.date);
+        
+        if (attendanceDate && isSameDay(attendanceDate, today)) {
+          if (data.status === 'Present') {
+            presentToday++;
+            if (data.checkInTime && data.late) {
+              attendanceAlerts.push({ id: doc.id, message: `${data.employeeName || 'An employee'} arrived late.` });
+            }
+          } else if (data.status === 'Absent') {
+            absentToday++;
+            if (!data.excused) {
+              attendanceAlerts.push({ id: doc.id, message: `${data.employeeName || 'An employee'} is absent without leave.` });
+            }
           }
         }
       });
@@ -69,15 +79,17 @@ class DashboardService {
         
         // Check if on leave today
         if (data.status === 'Approved') {
-          const startDate = data.startDate ? new Date(data.startDate) : null;
-          const endDate = data.endDate ? new Date(data.endDate) : null;
+          const startDate = parseDate(data.fromDate);
+          const endDate = parseDate(data.toDate);
           
           if (startDate && endDate) {
             // Strip time for accurate day comparison
             startDate.setHours(0, 0, 0, 0);
             endDate.setHours(0, 0, 0, 0);
+            const todayStripped = new Date(today);
+            todayStripped.setHours(0, 0, 0, 0);
             
-            if (today >= startDate && today <= endDate) {
+            if (todayStripped >= startDate && todayStripped <= endDate) {
               onLeaveToday++;
             }
           }

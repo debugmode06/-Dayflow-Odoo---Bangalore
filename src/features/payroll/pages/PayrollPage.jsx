@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { usePayroll } from '../hooks/usePayroll';
+import { useAuth } from '@/hooks/useAuth';
 import { PayrollTable } from '../components/PayrollTable';
 import { SalaryEditor } from '../components/SalaryEditor';
 import { DollarSign } from 'lucide-react';
@@ -7,10 +8,13 @@ import '../styles/payroll.css';
 
 export const PayrollPage = () => {
   const { payrollData, isLoading, error, updateSalary } = usePayroll();
+  const { role } = useAuth();
   const [editingRecord, setEditingRecord] = useState(null);
+  
+  const canEdit = role === 'hr' || role === 'admin';
 
   const handleEditClick = (record) => {
-    setEditingRecord(record);
+    if (canEdit) setEditingRecord(record);
   };
 
   const handleCloseModal = () => {
@@ -44,6 +48,7 @@ export const PayrollPage = () => {
         data={payrollData} 
         isLoading={isLoading} 
         onEdit={handleEditClick} 
+        canEdit={canEdit}
       />
 
       <SalaryEditor

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pencil } from 'lucide-react';
 import '../styles/payroll.css';
 
-export const PayrollTable = ({ data, onEdit, isLoading }) => {
+export const PayrollTable = ({ data, onEdit, isLoading, canEdit }) => {
   if (isLoading) {
     return (
       <div className="payroll-table-card table-skeleton">
@@ -57,13 +57,15 @@ export const PayrollTable = ({ data, onEdit, isLoading }) => {
                 <td className="currency-val text-rose-600">-{formatCurrency(record.deductions, record.currency)}</td>
                 <td className="currency-val net-salary-val">{formatCurrency(record.netSalary, record.currency)}</td>
                 <td>
-                  <button 
-                    className="btn-edit" 
-                    onClick={() => onEdit(record)}
-                    aria-label={`Edit salary for ${record.employeeName}`}
-                  >
-                    <Pencil size={14} className="mr-1" /> Edit
-                  </button>
+                  {canEdit && (
+                    <button 
+                      className="btn-edit" 
+                      onClick={() => onEdit(record)}
+                      aria-label={`Edit salary for ${record.employeeName}`}
+                    >
+                      <Pencil size={14} className="mr-1" /> Edit
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
