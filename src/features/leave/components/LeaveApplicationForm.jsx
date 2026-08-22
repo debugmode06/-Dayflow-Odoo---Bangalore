@@ -49,7 +49,8 @@ export const LeaveApplicationForm = ({ onActiveRequestChange, allLeaves = [] }) 
     }
     setLoading(true);
     try {
-      await applyForLeave(user.uid, user.displayName || user.email, formData);
+      const duration = calculateLeaveDuration(formData.startDate, formData.endDate);
+      await applyForLeave(user.uid, user.displayName || user.email, { ...formData, duration });
       setToast({ message: 'Leave application submitted successfully', type: 'success' });
       setFormData({ type: 'Vacation', startDate: '', endDate: '', reason: '' });
     } catch (error) {

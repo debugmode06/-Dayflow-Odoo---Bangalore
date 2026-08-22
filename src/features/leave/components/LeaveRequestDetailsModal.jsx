@@ -13,9 +13,18 @@ export const LeaveRequestDetailsModal = ({ isOpen, onClose, leave }) => {
     }
   };
 
+  const parseFirestoreDate = (field) => {
+    if (!field) return null;
+    if (field.toDate) return field.toDate().getTime();
+    if (field.seconds) return field.seconds * 1000;
+    return new Date(field).getTime();
+  };
+
   const getFormatDate = (dateStr) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const parsed = parseFirestoreDate(dateStr);
+    if (!parsed) return '-';
+    return new Date(parsed).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   return (

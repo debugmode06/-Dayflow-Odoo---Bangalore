@@ -44,10 +44,13 @@ export const LeaveCalendar = ({ leaves = [] }) => {
     for (const leave of leaves) {
       if (!leave.startDate || !leave.endDate) continue;
       
-      const start = new Date(leave.startDate);
+      // Parse YYYY-MM-DD manually to avoid UTC offset issues
+      const [sYear, sMonth, sDay] = leave.startDate.split('-');
+      const start = new Date(parseInt(sYear), parseInt(sMonth) - 1, parseInt(sDay));
       start.setHours(0, 0, 0, 0);
       
-      const end = new Date(leave.endDate);
+      const [eYear, eMonth, eDay] = leave.endDate.split('-');
+      const end = new Date(parseInt(eYear), parseInt(eMonth) - 1, parseInt(eDay));
       end.setHours(0, 0, 0, 0);
 
       if (dateToCheck >= start && dateToCheck <= end) {

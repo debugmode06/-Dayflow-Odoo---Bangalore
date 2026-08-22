@@ -3,11 +3,18 @@ import Card from '@/components/ui/Card';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 export const LeaveActivityTimeline = ({ leaves = [] }) => {
+  const parseFirestoreDate = (field) => {
+    if (!field) return 0;
+    if (field.toDate) return field.toDate().getTime();
+    if (field.seconds) return field.seconds * 1000;
+    return new Date(field).getTime();
+  };
+
   // Sort leaves by creation date or fallback to start date descending
   const recentActivities = [...leaves]
     .sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt) : new Date(a.startDate);
-      const dateB = b.createdAt ? new Date(b.createdAt) : new Date(b.startDate);
+      const dateA = a.createdAt ? parseFirestoreDate(a.createdAt) : parseFirestoreDate(a.startDate);
+      const dateB = b.createdAt ? parseFirestoreDate(b.createdAt) : parseFirestoreDate(b.startDate);
       return dateB - dateA;
     })
     .slice(0, 5);
@@ -20,9 +27,9 @@ export const LeaveActivityTimeline = ({ leaves = [] }) => {
     }
   };
 
-  const getTimeAgo = (dateStr) => {
-    if (!dateStr) return 'Recently';
-    const date = new Date(dateStr);
+  const getTimeAgo = (field) => {
+    if (!field) return 'Recently';
+    const date = new Date(parseFirestoreDate(field));
     const diff = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24));
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Yesterday';

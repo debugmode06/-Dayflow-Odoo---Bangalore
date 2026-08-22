@@ -26,7 +26,7 @@ export const Modal = ({
         inset: 0,
         backgroundColor: 'rgba(15, 23, 42, 0.4)',
         backdropFilter: 'blur(4px)',
-        zIndex: 'var(--z-modal)',
+        zIndex: 'var(--z-modal, 9999)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
