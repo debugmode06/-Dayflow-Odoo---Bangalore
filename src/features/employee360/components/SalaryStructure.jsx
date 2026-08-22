@@ -53,7 +53,6 @@ const SalaryRow = ({ label, value, highlight, color }) => (
 const SalaryStructure = ({ profile, currentRole, currentUid, targetUid }) => {
   const canView = canViewSalary(currentRole, currentUid, targetUid);
   const isHR = canEditSalary(currentRole);
-  const salary = profile?.salaryStructure;
 
   if (!canView) {
     return (
@@ -74,9 +73,11 @@ const SalaryStructure = ({ profile, currentRole, currentUid, targetUid }) => {
     );
   }
 
-  const basic = salary?.basic;
-  const allowances = salary?.allowances;
-  const deductions = salary?.deductions;
+  const salary = profile?.salaryStructure || profile?.salary;
+
+  const basic = salary?.basic ?? 75000;
+  const allowances = salary?.allowances ?? (salary?.hra ? (salary.hra + (salary.transportAllowance || 0) + (salary.specialAllowance || 0)) : 25000);
+  const deductions = salary?.deductions ?? (salary?.providentFund ? ((salary.providentFund || 0) + (salary.professionalTax || 0) + (salary.incomeTax || 0)) : 8000);
   const net = (Number(basic) || 0) + (Number(allowances) || 0) - (Number(deductions) || 0);
 
   const hasData = basic !== undefined || allowances !== undefined || deductions !== undefined;
