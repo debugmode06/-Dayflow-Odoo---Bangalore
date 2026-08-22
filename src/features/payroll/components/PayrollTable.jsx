@@ -1,19 +1,25 @@
 import React from 'react';
-import { Pencil, FileText, CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { Pencil, FileText, AlertTriangle, PlusCircle, TrendingUp } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
-import {
-  safeNum,
-  calcTotalAllowances,
-  calcTotalDeductions,
-} from '../utils/payrollCalculations';
+import { safeNum, calcTotalAllowances, calcTotalDeductions } from '../utils/payrollCalculations';
+import { detectAnomalies } from '../utils/payrollAnomalies';
 import '../styles/payroll.css';
 
-export const PayrollTable = ({ data, onEdit, onViewPayslip, onTransitionStatus, isLoading, canEdit }) => {
+export const PayrollTable = ({
+  data,
+  onEdit,
+  onViewPayslip,
+  onTransitionStatus,
+  onOpenAdjustment,
+  onOpenRevision,
+  isLoading,
+  canEdit,
+}) => {
   if (isLoading) {
     return (
       <div className="payroll-table-card table-skeleton">
         <div className="skeleton" style={{ height: '40px', marginBottom: '1rem', borderRadius: '4px' }}></div>
-        {[1, 2, 3, 4, 5].map(i => (
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="skeleton" style={{ height: '30px', marginBottom: '0.75rem', borderRadius: '4px' }}></div>
         ))}
       </div>
@@ -50,18 +56,21 @@ export const PayrollTable = ({ data, onEdit, onViewPayslip, onTransitionStatus, 
               <th>Deductions</th>
               <th>Gross Salary</th>
               <th>Net Salary</th>
-              <th>Status</th>
+              <th>Status & Flags</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {data.map(record => {
+            {data.map((record, index) => {
               const basic = safeNum(record.basicSalary);
               const allow = record.allowances !== undefined ? safeNum(record.allowances) : calcTotalAllowances(record);
               const deduct = record.deductions !== undefined ? safeNum(record.deductions) : calcTotalDeductions(record);
               const gross = record.grossSalary !== undefined ? safeNum(record.grossSalary) : basic + allow;
               const net = record.netSalary !== undefined ? safeNum(record.netSalary) : gross - deduct;
               const status = (record.status || 'DRAFT').toUpperCase();
+
+              const previousRecord = index + 1 < data.length ? data[index + 1] : null;
+              const anomalies = detectAnomalies(record, previousRecord, data);
 
               const statusVariant = {
                 PAID: 'success',
@@ -84,9 +93,31 @@ export const PayrollTable = ({ data, onEdit, onViewPayslip, onTransitionStatus, 
                   <td className="currency-val font-semibold">{formatCurrency(gross, record.currency)}</td>
                   <td className="currency-val net-salary-val">{formatCurrency(net, record.currency)}</td>
                   <td>
-                    <Badge variant={statusVariant} size="sm">
-                      {status}
-                    </Badge>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <Badge variant={statusVariant} size="sm">
+                        {status}
+                      </Badge>
+                      {anomalies.length > 0 && (
+                        <div
+                          title={anomalies.map((a) => `${a.severity}: ${a.message}`).join('\n')}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            color: '#b45309',
+                            backgroundColor: '#fef3c7',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: '600',
+                            cursor: 'help',
+                          }}
+                        >
+                          <AlertTriangle size={12} color="#b45309" />
+                          {anomalies.length} Advisory {anomalies.length === 1 ? 'Flag' : 'Flags'}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -133,11 +164,31 @@ export const PayrollTable = ({ data, onEdit, onViewPayslip, onTransitionStatus, 
 
                           <button
                             className="btn-edit"
-                            onClick={() => onEdit(record)}
-                            aria-label={`Edit salary for ${record.employeeName}`}
+                            onClick={() => onOpenAdjustment && onOpenAdjustment(record)}
+                            title="Add One-Time Adjustment"
+                            style={{ backgroundColor: '#fae8ff', color: '#86198f' }}
                           >
-                            <Pencil size={14} className="mr-1" /> Edit
+                            <PlusCircle size={14} className="mr-1" /> Adjust
                           </button>
+
+                          <button
+                            className="btn-edit"
+                            onClick={() => onOpenRevision && onOpenRevision(record)}
+                            title="Create Salary Revision"
+                            style={{ backgroundColor: '#ecfdf5', color: '#047857' }}
+                          >
+                            <TrendingUp size={14} className="mr-1" /> Revision
+                          </button>
+
+                          {status !== 'PAID' && (
+                            <button
+                              className="btn-edit"
+                              onClick={() => onEdit(record)}
+                              aria-label={`Edit salary for ${record.employeeName}`}
+                            >
+                              <Pencil size={14} className="mr-1" /> Edit
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

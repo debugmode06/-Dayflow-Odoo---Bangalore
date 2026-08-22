@@ -16,12 +16,22 @@ import {
   ShieldAlert,
   Play,
   Loader2,
+  PieChart,
+  CheckCircle2,
+  AlertTriangle,
+  FileSpreadsheet,
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
 import { safeNum, calculatePayrollSummary } from '../utils/payrollCalculations';
 import { getRecentPeriods, getPeriodLabel, getCurrentPeriodKey } from '../utils/payrollPeriods';
+import { calculateHRAnalytics } from '../utils/payrollAnalytics';
+import { validatePayrollBeforeApproval } from '../utils/payrollValidation';
+import { detectAnomalies } from '../utils/payrollAnomalies';
 import { transitionPayrollStatus } from '../services/payrollWorkflow';
+import { payrollService } from '../services/payrollService';
 import '../styles/payroll.css';
 
 export const PayrollPage = () => {
@@ -35,17 +45,26 @@ export const PayrollPage = () => {
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
 
+  // Modal States for Features 6, 8, 9
+  const [validatingRecord, setValidatingRecord] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
+  const [adjustingRecord, setAdjustingRecord] = useState(null);
+  const [adjustmentType, setAdjustmentType] = useState('bonus');
+  const [adjustmentAmount, setAdjustmentAmount] = useState('');
+  const [adjustmentDesc, setAdjustmentDesc] = useState('');
+  const [revisionRecord, setRevisionRecord] = useState(null);
+  const [revisedBasic, setRevisedBasic] = useState('');
+  const [revisionReason, setRevisionReason] = useState('');
+
   const canEdit = role === 'hr' || role === 'admin';
   const periodsList = useMemo(() => getRecentPeriods(12), []);
 
-  // Extract unique departments for filter dropdown
   const departments = useMemo(() => {
     if (!payrollData) return [];
     const depts = new Set(payrollData.map((r) => r.department).filter(Boolean));
     return Array.from(depts);
   }, [payrollData]);
 
-  // Filter payroll data by search, department, and status
   const filteredData = useMemo(() => {
     if (!payrollData) return [];
     return payrollData.filter((record) => {
@@ -63,11 +82,14 @@ export const PayrollPage = () => {
     });
   }, [payrollData, searchQuery, selectedDept, selectedStatus]);
 
-  // Calculate summary stats dynamically
   const stats = useMemo(() => {
     const baseSummary = calculatePayrollSummary(filteredData);
     const pendingCount = filteredData.filter((r) => r.status === 'CALCULATED').length;
     return { ...baseSummary, pendingCount };
+  }, [filteredData]);
+
+  const hrAnalytics = useMemo(() => {
+    return calculateHRAnalytics(filteredData);
   }, [filteredData]);
 
   const formatCurrency = (val) => {
@@ -86,20 +108,84 @@ export const PayrollPage = () => {
     setViewingPayslip(record);
   };
 
-  const handleCloseModal = () => {
-    setEditingRecord(null);
-  };
-
   const handleSaveSalary = async (recordId, updatedData) => {
     await updateSalary(recordId, updatedData);
   };
 
   const handleTransitionStatus = async (recordId, currentStatus, newStatus) => {
+    const record = payrollData.find((r) => r.id === recordId);
+    if (newStatus === 'APPROVED' && record) {
+      // Trigger Pre-Approval Validation (Feature 6)
+      const res = validatePayrollBeforeApproval(record, payrollData);
+      setValidationResult(res);
+      setValidatingRecord({ recordId, currentStatus, newStatus, record });
+      return;
+    }
+
     try {
       await transitionPayrollStatus(recordId, currentStatus, newStatus, user?.uid || 'HR_ADMIN');
       await refetch();
     } catch (err) {
       alert(`Status transition failed: ${err.message}`);
+    }
+  };
+
+  const confirmApproval = async () => {
+    if (!validatingRecord) return;
+    try {
+      await transitionPayrollStatus(
+        validatingRecord.recordId,
+        validatingRecord.currentStatus,
+        validatingRecord.newStatus,
+        user?.uid || 'HR_ADMIN'
+      );
+      setValidatingRecord(null);
+      setValidationResult(null);
+      await refetch();
+    } catch (err) {
+      alert(`Approval failed: ${err.message}`);
+    }
+  };
+
+  const handleSaveAdjustment = async () => {
+    if (!adjustingRecord || !adjustmentAmount) return;
+    try {
+      await payrollService.addPayrollAdjustment(adjustingRecord.id, {
+        type: adjustmentType,
+        amount: Number(adjustmentAmount),
+        description: adjustmentDesc,
+        period: selectedPeriod,
+      }, user?.uid || 'HR_ADMIN');
+
+      setAdjustingRecord(null);
+      setAdjustmentAmount('');
+      setAdjustmentDesc('');
+      await refetch();
+    } catch (err) {
+      alert(`Adjustment failed: ${err.message}`);
+    }
+  };
+
+  const handleSaveRevision = async () => {
+    if (!revisionRecord || !revisedBasic) return;
+    try {
+      await payrollService.addSalaryRevision(revisionRecord.employeeId || 'EMP-1001', {
+        previousSalary: revisionRecord.basicSalary,
+        revisedSalary: Number(revisedBasic),
+        reason: revisionReason,
+        effectiveDate: new Date().toISOString().split('T')[0],
+      }, user?.uid || 'HR_ADMIN');
+
+      await payrollService.updateSalaryRecord(revisionRecord.id, {
+        basicSalary: Number(revisedBasic),
+      }, user?.uid || 'HR_ADMIN');
+
+      setRevisionRecord(null);
+      setRevisedBasic('');
+      setRevisionReason('');
+      await refetch();
+    } catch (err) {
+      alert(`Salary revision failed: ${err.message}`);
     }
   };
 
@@ -113,7 +199,7 @@ export const PayrollPage = () => {
             HR Payroll & Compensation Control
           </h1>
           <p className="payroll-subtitle" style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-            Manage organization salaries, allowances, deductions, and bulk payroll workflow.
+            Organization salary governance, bulk wizard, analytics, validation, and status approval workflows.
           </p>
         </div>
 
@@ -149,7 +235,6 @@ export const PayrollPage = () => {
         </div>
       </div>
 
-      {/* Visibly Handle Error States — ZERO fake fallback numbers */}
       {!isLoading && error && (
         <div className="mb-6 bg-red-50 text-red-700 p-4 rounded-lg shadow-sm border border-red-200" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <ShieldAlert size={24} color="#dc2626" />
@@ -160,7 +245,6 @@ export const PayrollPage = () => {
         </div>
       )}
 
-      {/* 1. LOADING STATE */}
       {isLoading && (
         <Card>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '24px', justifyContent: 'center' }}>
@@ -172,10 +256,9 @@ export const PayrollPage = () => {
         </Card>
       )}
 
-      {/* 2. SUCCESS / CONTENT STATE */}
       {!isLoading && (
         <>
-          {/* Financial Summary KPI Cards */}
+          {/* Top KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
             <Card title="Total Gross Payroll" subtitle="Basic + Allowances">
               <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-primary)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -217,7 +300,40 @@ export const PayrollPage = () => {
             </Card>
           </div>
 
-          {/* Filter Controls Bar */}
+          {/* HR Analytics Dashboard Section (Feature 4) */}
+          <Card title="HR Payroll Analytics & Cost Distribution" subtitle={`Period: ${getPeriodLabel(selectedPeriod)}`}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '12px' }}>
+              {/* Department Costs */}
+              <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <PieChart size={16} color="var(--color-primary)" /> Department Payroll Cost
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+                  {Object.entries(hrAnalytics.departmentCosts).map(([dept, cost]) => (
+                    <div key={dept} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>
+                      <span>{dept}</span>
+                      <strong>{formatCurrency(cost)}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status Distribution */}
+              <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  Status Distribution
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                  <div style={{ padding: '6px', borderRadius: '4px', backgroundColor: '#f1f5f9' }}>DRAFT: <strong>{hrAnalytics.statusDistribution.DRAFT || 0}</strong></div>
+                  <div style={{ padding: '6px', borderRadius: '4px', backgroundColor: '#fef3c7' }}>CALCULATED: <strong>{hrAnalytics.statusDistribution.CALCULATED || 0}</strong></div>
+                  <div style={{ padding: '6px', borderRadius: '4px', backgroundColor: '#e0f2fe' }}>APPROVED: <strong>{hrAnalytics.statusDistribution.APPROVED || 0}</strong></div>
+                  <div style={{ padding: '6px', borderRadius: '4px', backgroundColor: '#dcfce7' }}>PAID: <strong>{hrAnalytics.statusDistribution.PAID || 0}</strong></div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Filter Bar */}
           <div
             style={{
               display: 'flex',
@@ -269,66 +385,193 @@ export const PayrollPage = () => {
                   >
                     <option value="ALL">All Departments</option>
                     {departments.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
+                      <option key={dept} value={dept}>{dept}</option>
                     ))}
                   </select>
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    fontSize: 'var(--font-size-sm)',
-                    backgroundColor: 'var(--bg-app)',
-                    color: 'var(--text-primary)',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="DRAFT">DRAFT</option>
-                  <option value="CALCULATED">CALCULATED</option>
-                  <option value="APPROVED">APPROVED</option>
-                  <option value="PAID">PAID</option>
-                </select>
-              </div>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: 'var(--font-size-sm)',
+                  backgroundColor: 'var(--bg-app)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                }}
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="CALCULATED">CALCULATED</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="PAID">PAID</option>
+              </select>
             </div>
           </div>
 
-          {/* Payroll Table */}
+          {/* Payroll Table with Advanced Anomalies advisory */}
           <PayrollTable
             data={filteredData}
             isLoading={isLoading}
             onEdit={handleEditClick}
             onViewPayslip={handleViewPayslip}
             onTransitionStatus={handleTransitionStatus}
+            onOpenAdjustment={(rec) => setAdjustingRecord(rec)}
+            onOpenRevision={(rec) => setRevisionRecord(rec)}
             canEdit={canEdit}
           />
         </>
       )}
 
-      {/* Salary Editor Modal */}
+      {/* Pre-Approval Validation Summary Modal (Feature 6) */}
+      {validatingRecord && validationResult && (
+        <Modal isOpen={!!validatingRecord} onClose={() => setValidatingRecord(null)} title="Pre-Approval Payroll Validation" size="md">
+          <div style={{ padding: '12px 0' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '8px' }}>
+              Validation Summary for {validatingRecord.record?.employeeName} ({validatingRecord.record?.period})
+            </h4>
+
+            {validationResult.errors.length > 0 && (
+              <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px', borderRadius: '6px', marginBottom: '12px', fontSize: '13px' }}>
+                <strong>Validation Errors (Must fix before approval):</strong>
+                <ul style={{ paddingLeft: '18px', marginTop: '6px' }}>
+                  {validationResult.errors.map((e, idx) => <li key={idx}>{e}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {validationResult.warnings.length > 0 && (
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', color: '#b45309', padding: '12px', borderRadius: '6px', marginBottom: '12px', fontSize: '13px' }}>
+                <strong>Advisory Warnings:</strong>
+                <ul style={{ paddingLeft: '18px', marginTop: '6px' }}>
+                  {validationResult.warnings.map((w, idx) => <li key={idx}>{w}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {validationResult.isValid && (
+              <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '12px', borderRadius: '6px', marginBottom: '12px', fontSize: '13px' }}>
+                ✓ All validation checks passed cleanly. Ready for official HR Approval.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+              <Button variant="outline" onClick={() => setValidatingRecord(null)}>Cancel</Button>
+              <Button variant="primary" isDisabled={!validationResult.isValid} onClick={confirmApproval}>
+                Confirm HR Approval
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* One-Time Adjustment Modal (Feature 9) */}
+      {adjustingRecord && (
+        <Modal isOpen={!!adjustingRecord} onClose={() => setAdjustingRecord(null)} title="Apply One-Time Payroll Adjustment" size="md">
+          <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Add a one-time adjustment (bonus, incentive, reimbursement, arrears, correction) to <strong>{adjustingRecord.employeeName}</strong> for period {adjustingRecord.periodLabel || selectedPeriod}.
+            </p>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Adjustment Type</label>
+              <select
+                value={adjustmentType}
+                onChange={(e) => setAdjustmentType(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+              >
+                <option value="bonus">Bonus</option>
+                <option value="incentive">Incentive</option>
+                <option value="reimbursement">Reimbursement</option>
+                <option value="arrears">Arrears</option>
+                <option value="correction">Correction</option>
+                <option value="one_time_deduction">One-Time Deduction</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Amount (₹)</label>
+              <input
+                type="number"
+                placeholder="e.g. 5000"
+                value={adjustmentAmount}
+                onChange={(e) => setAdjustmentAmount(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Description / Reason</label>
+              <input
+                type="text"
+                placeholder="e.g. Travel reimbursement for Q2 client visit"
+                value={adjustmentDesc}
+                onChange={(e) => setAdjustmentDesc(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              <Button variant="outline" onClick={() => setAdjustingRecord(null)}>Cancel</Button>
+              <Button variant="primary" onClick={handleSaveAdjustment}>Save Adjustment</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Salary Revision Modal (Feature 1) */}
+      {revisionRecord && (
+        <Modal isOpen={!!revisionRecord} onClose={() => setRevisionRecord(null)} title="Create Salary Revision" size="md">
+          <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Create a formal salary appraisal/revision for <strong>{revisionRecord.employeeName}</strong>. Previous Basic: <strong>{formatCurrency(revisionRecord.basicSalary)}</strong>.
+            </p>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Revised Basic Salary (₹)</label>
+              <input
+                type="number"
+                placeholder="e.g. 85000"
+                value={revisedBasic}
+                onChange={(e) => setRevisedBasic(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>Appraisal Reason / Designation Change</label>
+              <input
+                type="text"
+                placeholder="e.g. Annual Appraisal & Senior Promotion"
+                value={revisionReason}
+                onChange={(e) => setRevisionReason(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+              <Button variant="outline" onClick={() => setRevisionRecord(null)}>Cancel</Button>
+              <Button variant="primary" onClick={handleSaveRevision}>Apply Revision</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <SalaryEditor
         record={editingRecord}
         isOpen={!!editingRecord}
-        onClose={handleCloseModal}
+        onClose={() => setEditingRecord(null)}
         onSave={handleSaveSalary}
       />
 
-      {/* Printable Payslip Modal */}
       <PayslipModal
         record={viewingPayslip}
         isOpen={!!viewingPayslip}
         onClose={() => setViewingPayslip(null)}
       />
 
-      {/* Bulk Payroll Wizard */}
       <RunPayrollWizard
         isOpen={wizardOpen}
         onClose={() => setWizardOpen(false)}
