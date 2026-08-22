@@ -34,13 +34,22 @@ export const AuthProvider = ({ children }) => {
           });
         }
       } else {
-        // Demo fallback for initial evaluation if auth not logged in yet
-        setUser({
-          uid: 'demo-user-123',
-          email: 'alex.morgan@dayflow.hr',
-          displayName: 'Alex Morgan',
-          employeeId: 'EMP-2026',
-        });
+        const isLocalDev = import.meta.env.VITE_ATTENDANCE_LOCAL_DEV === 'true';
+        if (isLocalDev) {
+          // In Local Dev Mode: Provide local dev user & HR role for seamless local UI testing
+          setUser({
+            uid: 'dev-user-1',
+            email: 'priya.sharma@dayflow.local',
+            displayName: 'Priya Sharma',
+            employeeId: 'EMP-101',
+            role: 'hr',
+          });
+          setRole('hr');
+        } else {
+          // No authenticated user in production — clear state so ProtectedRoute redirects to login
+          setUser(null);
+          setRole('employee');
+        }
       }
       setLoading(false);
     });

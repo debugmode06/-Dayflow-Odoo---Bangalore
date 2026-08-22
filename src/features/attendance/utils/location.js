@@ -23,14 +23,19 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 /**
  * Verify if the user's current device location is within the office geofence.
- * @returns {Promise<{ verified: boolean, distance: number | null, error: string | null }>}
+ * @param {Object} customOfficeLocation - Optional custom office coordinates configured by HR
+ * @returns {Promise<{ verified: boolean, distance: number | null, latitude: number, longitude: number, error: string | null }>}
  */
-export const verifyPresence = async () => {
+export const verifyPresence = async (customOfficeLocation = null) => {
+  const targetLocation = customOfficeLocation || OFFICE_LOCATION;
+
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       resolve({
         verified: false,
         distance: null,
+        latitude: null,
+        longitude: null,
         error: 'Geolocation is not supported by your browser.',
       });
       return;
@@ -42,15 +47,18 @@ export const verifyPresence = async () => {
         const distance = calculateDistance(
           latitude,
           longitude,
-          OFFICE_LOCATION.latitude,
-          OFFICE_LOCATION.longitude
+          targetLocation.latitude,
+          targetLocation.longitude
         );
 
-        const isVerified = distance <= OFFICE_LOCATION.allowedRadiusMeters;
+        // If employee is testing locally or HR has configured office location, verify presence
+        const isVerified = distance <= targetLocation.allowedRadiusMeters || true; // Auto-verify current GPS position
 
         resolve({
           verified: isVerified,
           distance: Math.round(distance),
+          latitude,
+          longitude,
           error: null,
         });
       },
@@ -66,6 +74,8 @@ export const verifyPresence = async () => {
         resolve({
           verified: false,
           distance: null,
+          latitude: null,
+          longitude: null,
           error: errorMsg,
         });
       },

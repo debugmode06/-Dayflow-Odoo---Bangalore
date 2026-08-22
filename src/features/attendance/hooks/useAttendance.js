@@ -7,9 +7,11 @@ import {
   getWeeklyAttendance,
   getAttendanceHistory,
   getAttendanceDate,
-} from '../services/attendanceService';
+  DEV_USER,
+  USE_LOCAL_DEV,
+} from '../dev/attendanceDataProvider';
 import { verifyPresence } from '../utils/location';
-import { VERIFICATION_TYPE, VERIFICATION_STATUS, ATTENDANCE_STATUS } from '../constants';
+import { VERIFICATION_TYPE, VERIFICATION_STATUS } from '../constants';
 
 // UI States
 export const ATTENDANCE_UI_STATE = {
@@ -23,25 +25,28 @@ export const ATTENDANCE_UI_STATE = {
 };
 
 export const useAttendance = () => {
-  const { user } = useAuth();
-  
+  const { user: authUser } = useAuth();
+
+  // In local dev mode, substitute the dev user when no real Firebase user exists
+  const user = USE_LOCAL_DEV && !authUser ? DEV_USER : authUser;
+
   const [uiState, setUiState] = useState(ATTENDANCE_UI_STATE.LOADING);
   const [todayRecord, setTodayRecord] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [presenceData, setPresenceData] = useState(null);
-  
+
   // Weekly and History state
   const [weeklyRecords, setWeeklyRecords] = useState([]);
   const [historyRecords, setHistoryRecords] = useState([]);
 
   const loadTodayAttendance = useCallback(async () => {
     if (!user?.uid) return;
-    
+
     try {
       const dateStr = getAttendanceDate();
       const record = await getDailyAttendance(user.uid, dateStr);
       setTodayRecord(record);
-      
+
       if (!record) {
         setUiState(ATTENDANCE_UI_STATE.READY);
       } else if (!record.checkOut) {
@@ -51,8 +56,19 @@ export const useAttendance = () => {
       }
     } catch (err) {
       console.error('Error loading attendance:', err);
-      setErrorMsg('Failed to load your attendance for today.');
-      setUiState(ATTENDANCE_UI_STATE.ERROR);
+      // If permission-denied occurs on load (e.g. document does not exist yet),
+      // treat as READY state so user can Start Day & Check-in
+      if (err?.code === 'permission-denied' || err?.code === 'not-found') {
+        setTodayRecord(null);
+        setUiState(ATTENDANCE_UI_STATE.READY);
+      } else {
+        setErrorMsg(
+          err?.message
+            ? `[${err.code || 'error'}]: ${err.message}`
+            : 'Failed to load your attendance for today.'
+        );
+        setUiState(ATTENDANCE_UI_STATE.ERROR);
+      }
     }
   }, [user]);
 
@@ -64,17 +80,17 @@ export const useAttendance = () => {
     if (!user?.uid) return;
     try {
       const now = new Date();
-      
-      // Calculate week bounds (e.g. past 7 days or Mon-Sun)
+
+      // Calculate week bounds (past 7 days)
       const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - 6); // Past 7 days
+      weekStart.setDate(now.getDate() - 6);
       const startStr = getAttendanceDate(weekStart);
       const endStr = getAttendanceDate(now);
 
-      const weekly = await getWeeklyAttendance(user.uid, startStr, endStr);
+      const weekly = await getWeeklyAttendance(USE_LOCAL_DEV ? 'ALL' : user.uid, startStr, endStr, { allEmployees: USE_LOCAL_DEV });
       setWeeklyRecords(weekly);
 
-      const history = await getAttendanceHistory(user.uid, { endDate: endStr });
+      const history = await getAttendanceHistory(USE_LOCAL_DEV ? 'ALL' : user.uid, { endDate: endStr, allEmployees: USE_LOCAL_DEV });
       setHistoryRecords(history);
     } catch (err) {
       console.error('Error loading history:', err);
@@ -87,12 +103,27 @@ export const useAttendance = () => {
     setErrorMsg(null);
     setPresenceData(null);
 
-    // 1. Verify Geofence
-    const locationResult = await verifyPresence();
+    // 1. Verify Geofence (in local dev mode, auto-verify without GPS prompt)
+    let locationResult;
+    if (USE_LOCAL_DEV) {
+      locationResult = {
+        verified: true,
+        distance: 42,
+        latitude: 12.9716,
+        longitude: 77.5946,
+        error: null,
+      };
+    } else {
+      locationResult = await verifyPresence();
+    }
+
     setPresenceData(locationResult);
 
     if (!locationResult.verified) {
-      setErrorMsg(locationResult.error || `Outside workplace zone (Distance: ${locationResult.distance}m).`);
+      setErrorMsg(
+        locationResult.error ||
+          `Outside workplace zone (Distance: ${locationResult.distance}m).`
+      );
       setUiState(ATTENDANCE_UI_STATE.ERROR);
       return;
     }

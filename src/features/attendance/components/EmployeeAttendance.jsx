@@ -7,6 +7,21 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAttendance, ATTENDANCE_UI_STATE } from '../hooks/useAttendance';
 import { AttendancePulse } from './AttendancePulse';
 import { LiveTimer } from './LiveTimer';
+import { USE_LOCAL_DEV, DEV_USER, DEV_EMPLOYEES, DEV_DEPARTMENTS, HR_CONFIGURED_LOCATION } from '../dev/attendanceDataProvider';
+
+// Local Development Mode banner — visible only when VITE_ATTENDANCE_LOCAL_DEV=true
+const DevModeBanner = () => USE_LOCAL_DEV ? (
+  <div style={{
+    position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+    background: 'linear-gradient(90deg, #7c3aed, #4f46e5)',
+    color: '#fff', textAlign: 'center', padding: '6px 16px',
+    fontSize: '12px', fontWeight: '600', letterSpacing: '0.05em',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+  }}>
+    <span>🛠</span>
+    <span>LOCAL DEVELOPMENT MODE — Multi-Employee Attendance Active ({DEV_EMPLOYEES.length} Employees)</span>
+  </div>
+) : null;
 
 // Helper to format Firestore timestamps nicely
 const formatTime = (ts) => {
@@ -22,33 +37,87 @@ const formatDuration = (seconds) => {
   return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`;
 };
 
+// Helper to map date string to day name abbreviation
+const getDayAbbrev = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(d);
+};
+
 // Weekly Attendance Visualizer
-const WeeklyAttendance = ({ records }) => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  
+const WeeklyAttendance = ({ records = [] }) => {
+  // Generate Mon-Sun date array for current week
+  const getWeekDates = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 is Sun, 1 is Mon...
+    const distanceToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + distanceToMon);
+
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      week.push({
+        label: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(d),
+        dateStr: `${yyyy}-${mm}-${dd}`,
+      });
+    }
+    return week;
+  };
+
+  const weekDays = getWeekDates();
+  const recordMap = new Map(records.map(r => [r.date, r]));
+
   return (
     <Card title="This Week" subtitle="Your recent attendance pattern">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
-        {days.map((day, idx) => {
-          // Simplistic mapping: in a real app, align records by actual day of week
-          const record = records[idx]; // Warning: assumes records are exactly mon-sun. 
-          // For a robust implementation, we would map dates. Since we only have a flat array, we mock the visual matching the user's design.
+        {weekDays.map(({ label, dateStr }) => {
+          const record = recordMap.get(dateStr);
           const isPresent = record?.status === 'PRESENT';
-          
+          const isHalfDay = record?.status === 'HALF_DAY';
+          const isAbsent = record?.status === 'ABSENT';
+          const isLeave = record?.status === 'LEAVE';
+
+          let statusIcon = '—';
+          let bg = 'var(--bg-secondary)';
+          let color = 'var(--text-tertiary)';
+
+          if (isPresent) {
+            statusIcon = '\u2713';
+            bg = 'var(--color-success-bg, #f0fdf4)';
+            color = 'var(--color-success-text, #16a34a)';
+          } else if (isHalfDay) {
+            statusIcon = '\u00BD';
+            bg = 'var(--color-warning-bg, #fffbeb)';
+            color = 'var(--color-warning-text, #d97706)';
+          } else if (isAbsent) {
+            statusIcon = '\u2715';
+            bg = 'var(--color-danger-bg, #fef2f2)';
+            color = 'var(--color-danger, #dc2626)';
+          } else if (isLeave) {
+            statusIcon = 'L';
+            bg = 'var(--color-info-bg, #eff6ff)';
+            color = 'var(--color-info-text, #2563eb)';
+          }
+
           return (
-            <div key={day} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '48px', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '500' }}>{day}</span>
+            <div key={dateStr} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '48px', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '500' }}>{label}</span>
               <div style={{ 
                 width: '32px', height: '32px', borderRadius: '50%', 
-                backgroundColor: isPresent ? 'var(--color-success-bg)' : 'var(--bg-secondary)',
-                color: isPresent ? 'var(--color-success-text)' : 'var(--text-tertiary)',
+                backgroundColor: bg,
+                color: color,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 'bold'
+                fontWeight: 'bold', fontSize: '13px'
               }}>
-                {isPresent ? '✓' : '—'}
+                {statusIcon}
               </div>
               <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                {isPresent ? formatTime(record.checkIn) : '--:--'}
+                {record?.checkIn ? formatTime(record.checkIn) : '--:--'}
               </span>
             </div>
           );
@@ -60,7 +129,9 @@ const WeeklyAttendance = ({ records }) => {
 
 // Main Page Component
 export const EmployeeAttendance = () => {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  // In local dev mode, use the dev user when no Firebase Auth user is present
+  const user = USE_LOCAL_DEV && !authUser ? DEV_USER : authUser;
   const {
     uiState,
     todayRecord,
@@ -87,12 +158,67 @@ export const EmployeeAttendance = () => {
   const isCompleted = uiState === ATTENDANCE_UI_STATE.COMPLETED;
   const isError = uiState === ATTENDANCE_UI_STATE.ERROR;
 
+  const [reportFilter, setReportFilter] = React.useState('all'); // 'all' | 'weekly' | 'monthly'
+  const [selectedDept, setSelectedDept] = React.useState('All Departments');
+  const [selectedEmployeeUid, setSelectedEmployeeUid] = React.useState('ALL'); // 'ALL' or employee.uid
+
+  // Dynamic list of employees filtered by selected department
+  const availableEmployees = selectedDept === 'All Departments'
+    ? DEV_EMPLOYEES
+    : DEV_EMPLOYEES.filter(e => e.department === selectedDept);
+
+  const getFilteredHistory = () => {
+    if (!historyRecords || historyRecords.length === 0) return [];
+    let records = historyRecords;
+
+    // Filter by selected department
+    if (selectedDept !== 'All Departments') {
+      records = records.filter(r => r.department === selectedDept);
+    }
+
+    // Filter by selected employee
+    if (selectedEmployeeUid !== 'ALL') {
+      records = records.filter(r => r.userId === selectedEmployeeUid || r.employeeId === selectedEmployeeUid);
+    }
+
+    // Filter by date range (weekly / monthly)
+    if (reportFilter === 'weekly') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      records = records.filter(r => r.date >= cutoffStr);
+    } else if (reportFilter === 'monthly') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      const cutoffStr = cutoff.toISOString().split('T')[0];
+      records = records.filter(r => r.date >= cutoffStr);
+    }
+
+    return records;
+  };
+
+  const filteredHistory = getFilteredHistory();
+
   const historyColumns = [
+    { 
+      header: 'Employee Name', 
+      accessor: 'employeeName', 
+      cell: (row) => (
+        <div>
+          <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+            {row.employeeName || user?.displayName || 'Priya Sharma'}
+          </div>
+          {row.department && (
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{row.department}</div>
+          )}
+        </div>
+      ) 
+    },
     { header: 'Date', accessor: 'date' },
     { 
       header: 'Status', 
       accessor: 'status',
-      cell: (row) => <Badge variant={row.status === 'PRESENT' ? 'success' : 'default'} dot>{row.status}</Badge> 
+      cell: (row) => <Badge variant={row.status === 'PRESENT' ? 'success' : (row.status === 'HALF_DAY' ? 'warning' : (row.status === 'LEAVE' ? 'info' : 'danger'))} dot>{row.status}</Badge> 
     },
     { header: 'Check-in', accessor: 'checkIn', cell: (row) => formatTime(row.checkIn) },
     { header: 'Check-out', accessor: 'checkOut', cell: (row) => formatTime(row.checkOut) },
@@ -100,7 +226,8 @@ export const EmployeeAttendance = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '1200px', margin: '0 auto', width: '100%', paddingTop: USE_LOCAL_DEV ? '36px' : undefined }}>
+      <DevModeBanner />
       {/* Header */}
       <div>
         <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)' }}>Attendance</h1>
@@ -144,6 +271,25 @@ export const EmployeeAttendance = () => {
                   <div style={{ fontSize: 'var(--font-size-4xl)', fontWeight: 'bold', marginBottom: '8px' }}>
                     {new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(new Date())}
                   </div>
+                  
+                  {/* Location & Geofence Verification Status */}
+                  <div style={{ margin: '12px 0 16px 0', padding: '12px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', fontSize: '13px' }}>
+                    {presenceData ? (
+                      <div>
+                        <span style={{ fontWeight: 'bold', color: presenceData.verified ? 'var(--color-success-text)' : 'var(--color-danger)' }}>
+                          {presenceData.verified ? `✓ ${HR_CONFIGURED_LOCATION.name} Verified` : '✕ Outside Workplace Zone'}
+                        </span>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                          Target HR Zone: {HR_CONFIGURED_LOCATION.address} (Allowed: {HR_CONFIGURED_LOCATION.allowedRadiusMeters}m | Current Dist: {presenceData.distance}m)
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ color: 'var(--text-secondary)' }}>
+                        📍 HR Target: <strong>{HR_CONFIGURED_LOCATION.name}</strong> ({HR_CONFIGURED_LOCATION.allowedRadiusMeters}m radius)
+                      </div>
+                    )}
+                  </div>
+
                   <Button 
                     variant="primary" 
                     size="lg" 
@@ -151,9 +297,9 @@ export const EmployeeAttendance = () => {
                     onClick={handleStartDay}
                     disabled={isVerifying}
                     isLoading={isVerifying}
-                    style={{ marginTop: '16px', maxWidth: '280px' }}
+                    style={{ marginTop: '8px', maxWidth: '280px' }}
                   >
-                    START DAY
+                    START DAY & CHECK IN
                   </Button>
                 </div>
               )}
@@ -250,14 +396,159 @@ export const EmployeeAttendance = () => {
       </div>
 
       {/* History Table */}
-      <Card title="Attendance History" subtitle="Your recorded workdays">
-        {historyRecords.length > 0 ? (
-          <DataTable columns={historyColumns} data={historyRecords} />
+      <Card title="Attendance History & Reports" subtitle="Recorded workdays across all departments, employees, and custom period reports">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+          
+          {/* Department Filter Bar */}
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              🏢 Filter by Department:
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {DEV_DEPARTMENTS.map((dept) => {
+                const isActive = selectedDept === dept;
+                return (
+                  <button
+                    key={dept}
+                    onClick={() => {
+                      setSelectedDept(dept);
+                      setSelectedEmployeeUid('ALL'); // Reset employee selection when department changes
+                    }}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: '1.5px solid',
+                      borderColor: isActive ? 'var(--color-primary, #3b82f6)' : 'var(--border-color, #e5e7eb)',
+                      backgroundColor: isActive ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: isActive ? '#ffffff' : 'var(--text-primary)',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: isActive ? '0 2px 6px rgba(59,130,246,0.3)' : 'none',
+                    }}
+                  >
+                    {dept}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Controls Row: Period Filter & Employee Dropdown */}
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color, #e5e7eb)', paddingTop: '12px' }}>
+            
+            {/* Period Filter Tabs */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Period:</span>
+              <button
+                onClick={() => setReportFilter('all')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: '1.5px solid',
+                  borderColor: reportFilter === 'all' ? 'var(--color-primary, #3b82f6)' : 'var(--border-color, #e5e7eb)',
+                  backgroundColor: reportFilter === 'all' ? 'rgba(59,130,246,0.1)' : 'transparent',
+                  color: reportFilter === 'all' ? 'var(--color-primary, #3b82f6)' : 'var(--text-secondary)',
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                All Dates
+              </button>
+              <button
+                onClick={() => setReportFilter('weekly')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: '1.5px solid',
+                  borderColor: reportFilter === 'weekly' ? 'var(--color-primary, #3b82f6)' : 'var(--border-color, #e5e7eb)',
+                  backgroundColor: reportFilter === 'weekly' ? 'rgba(59,130,246,0.1)' : 'transparent',
+                  color: reportFilter === 'weekly' ? 'var(--color-primary, #3b82f6)' : 'var(--text-secondary)',
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                📊 Weekly Report (7 Days)
+              </button>
+              <button
+                onClick={() => setReportFilter('monthly')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  border: '1.5px solid',
+                  borderColor: reportFilter === 'monthly' ? 'var(--color-primary, #3b82f6)' : 'var(--border-color, #e5e7eb)',
+                  backgroundColor: reportFilter === 'monthly' ? 'rgba(59,130,246,0.1)' : 'transparent',
+                  color: reportFilter === 'monthly' ? 'var(--color-primary, #3b82f6)' : 'var(--text-secondary)',
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                📅 Monthly Report (30 Days)
+              </button>
+            </div>
+
+            {/* Employee Selector Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>Employee:</span>
+              <select
+                value={selectedEmployeeUid}
+                onChange={(e) => setSelectedEmployeeUid(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1.5px solid var(--border-color, #d1d5db)',
+                  backgroundColor: 'var(--bg-primary, #ffffff)',
+                  color: 'var(--text-primary, #111827)',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  minWidth: '220px',
+                }}
+              >
+                <option value="ALL">👥 All Employees in {selectedDept} ({availableEmployees.length})</option>
+                {availableEmployees.map((emp) => (
+                  <option key={emp.uid} value={emp.uid}>
+                    👤 {emp.displayName} — {emp.role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+          </div>
+
+        </div>
+
+        {filteredHistory.length > 0 ? (
+          <DataTable columns={historyColumns} data={filteredHistory} />
         ) : (
           <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-            Your attendance history will appear here after you complete your first workday.
+            No attendance records found for this period filter.
           </div>
         )}
+      </Card>
+
+      {/* Sub-module 2 Integration Banner */}
+      <Card variant="ai" title="Attendance Intelligence" subtitle="Workday metrics, scores & pattern insights">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
+          <div>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+              Analyze your punctuality score, weekly trend comparison, and detected pattern signals.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => window.location.href = '/attendance-intelligence'}
+          >
+            VIEW INTELLIGENCE
+          </Button>
+        </div>
       </Card>
       
     </div>

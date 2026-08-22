@@ -46,8 +46,9 @@ service cloud.firestore {
     // Attendance Collection
     match /attendance/{attendanceId} {
       allow read: if isSignedIn() && (
-        resource.data.userId == request.auth.uid || 
-        isHR()
+        isHR() ||
+        attendanceId.matches('^' + request.auth.uid + '_.*') ||
+        (resource != null && resource.data.userId == request.auth.uid)
       );
       allow create: if isSignedIn() && (
         isHR() || (

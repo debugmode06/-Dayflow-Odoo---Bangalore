@@ -27,21 +27,25 @@ export const fetchWorkforcePulseInsight = async (metrics) => {
     ],
   };
 
-  try {
-    // Invoke Cloud Function wrapping NVIDIA NIM Llama 3.1 8B
-    const generateFn = httpsCallable(functionsInstance, 'generateWorkforceInsight');
-    const response = await generateFn(fullMetricsPayload);
+  const isLocalDev = import.meta.env.VITE_ATTENDANCE_LOCAL_DEV === 'true';
 
-    if (response.data && response.data.insight) {
-      return {
-        score: pulseScore,
-        metrics: fullMetricsPayload,
-        insight: response.data.insight,
-        provider: 'NVIDIA NIM Llama 3.1 8B Instruct',
-      };
+  if (!isLocalDev) {
+    try {
+      // Invoke Cloud Function wrapping NVIDIA NIM Llama 3.1 8B
+      const generateFn = httpsCallable(functionsInstance, 'generateWorkforceInsight');
+      const response = await generateFn(fullMetricsPayload);
+
+      if (response.data && response.data.insight) {
+        return {
+          score: pulseScore,
+          metrics: fullMetricsPayload,
+          insight: response.data.insight,
+          provider: 'NVIDIA NIM Llama 3.1 8B Instruct',
+        };
+      }
+    } catch (error) {
+      console.warn('Firebase Cloud Function unavailable, utilizing client rule-based explanation engine:', error.message);
     }
-  } catch (error) {
-    console.warn('Firebase Cloud Function unavailable, utilizing client rule-based explanation engine:', error.message);
   }
 
   // Graceful rule-based fallback explanation if cloud function / key is offline

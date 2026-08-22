@@ -14,16 +14,20 @@ import {
   fetchWorkforcePulseInsight,
 } from '@/features/workforce';
 import { EmployeeAttendance } from '@/features/attendance/components/EmployeeAttendance';
+import { AttendanceIntelligence } from '@/features/attendance/components/intelligence/AttendanceIntelligence';
+import { AttendanceDemoPage } from '@/features/attendance/components/AttendanceDemoPage';
+import EmployeeDirectory from '@/features/employees/components/EmployeeDirectory';
 
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, role, loading } = useAuth();
+  const isLocalDev = import.meta.env.VITE_ATTENDANCE_LOCAL_DEV === 'true';
 
   if (loading) return null;
-  if (!user) return <Navigate to="/unauthorized" replace />;
+  if (!user && !isLocalDev) return <Navigate to="/unauthorized" state={{ reason: 'unauthenticated' }} replace />;
 
-  if (requiredRole === 'hr' && role !== 'hr' && role !== 'admin') {
-    return <Navigate to="/unauthorized" replace />;
+  if (!isLocalDev && requiredRole === 'hr' && role !== 'hr' && role !== 'admin') {
+    return <Navigate to="/unauthorized" state={{ reason: 'insufficient-role' }} replace />;
   }
 
   return children;
@@ -168,6 +172,8 @@ export const AppRoutes = () => {
         <Route path="/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back, Alex. Your workday is aligned." roleMode="employee" />} />
         <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
         <Route path="/attendance" element={<EmployeeAttendance />} />
+        <Route path="/attendance-intelligence" element={<AttendanceIntelligence />} />
+        <Route path="/attendance-demo" element={<AttendanceDemoPage />} />
         <Route path="/leave" element={<DayflowDashboard title="Smart Leave & Time-Off" subtitle="Applications & Leave Impact Simulator" roleMode="employee" />} />
         <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
 
@@ -184,7 +190,7 @@ export const AppRoutes = () => {
           path="/hr/employees"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Employee Management Directory" subtitle="All staff profiles and access management" roleMode="hr" />
+              <EmployeeDirectory />
             </ProtectedRoute>
           }
         />
@@ -192,7 +198,7 @@ export const AppRoutes = () => {
           path="/hr/attendance"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="HR Attendance Monitor" subtitle="Daily & weekly workforce check-in tracking" roleMode="hr" />
+              <EmployeeAttendance />
             </ProtectedRoute>
           }
         />
