@@ -7,6 +7,9 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import LeaveBalanceIntelligence from './LeaveBalanceIntelligence';
+import LeaveUpcoming from './LeaveUpcoming';
+import LeaveInsights from './LeaveInsights';
+import LeaveActivityTimeline from './LeaveActivityTimeline';
 
 export const EmployeeLeaveDashboard = ({ title, subtitle, roleMode }) => {
   const { user } = useAuth();
@@ -49,14 +52,32 @@ export const EmployeeLeaveDashboard = ({ title, subtitle, roleMode }) => {
         </Badge>
       </div>
 
-      {/* Leave Balance Intelligence */}
-      <LeaveBalanceIntelligence leaves={leaves} activeRequest={activeRequest} />
+      {/* Leave Balance Intelligence & Upcoming */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)' }}>
+        <div style={{ flex: '3 1 600px' }}>
+          <LeaveBalanceIntelligence leaves={leaves} activeRequest={activeRequest} />
+        </div>
+        <div style={{ flex: '1 1 300px' }}>
+          <LeaveUpcoming leaves={leaves} />
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-6)' }}>
-        <LeaveApplicationForm onActiveRequestChange={setActiveRequest} allLeaves={allLeaves} currentLeaves={leaves} />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)' }}>
+          <div style={{ flex: '2 1 500px' }}>
+            <LeaveApplicationForm onActiveRequestChange={setActiveRequest} allLeaves={allLeaves} currentLeaves={leaves} />
+          </div>
+          <div style={{ flex: '1 1 300px' }}>
+            <LeaveInsights leaves={leaves} activeRequest={activeRequest} />
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-6)' }}>
-          <LeaveCalendar leaves={leaves} />
           <LeaveHistoryTable leaves={leaves} isLoading={loading} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+            <LeaveCalendar leaves={leaves} />
+            <LeaveActivityTimeline leaves={leaves} />
+          </div>
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   EmployeeLeaveDashboard,
   HRLeaveDashboard,
 } from '@/features/leave';
+import { EmployeeDashboard } from '@/features/dashboard/components/EmployeeDashboard';
 
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -207,7 +208,7 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute><AppShellLayout /></ProtectedRoute>}>
         
         {/* Employee Routes */}
-        <Route path="/employee/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back. Your workday is aligned." roleMode="employee" />} />
+        <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
         <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
         <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
         <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />

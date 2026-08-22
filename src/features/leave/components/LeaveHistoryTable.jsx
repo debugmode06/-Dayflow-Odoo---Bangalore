@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Card from '@/components/ui/Card';
 import DataTable from '@/components/ui/DataTable';
 import Badge from '@/components/ui/Badge';
+import LeaveRequestDetailsModal from './LeaveRequestDetailsModal';
 
 export const LeaveHistoryTable = ({ leaves = [], isLoading }) => {
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedLeave, setSelectedLeave] = useState(null);
   const columns = [
     {
       header: 'Type',
@@ -36,15 +39,71 @@ export const LeaveHistoryTable = ({ leaves = [], isLoading }) => {
       header: 'HR Comment',
       accessor: 'hrComment',
       cell: (row) => <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>{row.hrComment || '-'}</span>
+    },
+    {
+      header: 'Action',
+      accessor: 'id',
+      cell: (row) => (
+        <button 
+          onClick={() => setSelectedLeave(row)}
+          style={{
+            padding: '4px 8px',
+            backgroundColor: 'transparent',
+            border: '1px solid var(--color-primary-border)',
+            color: 'var(--color-primary)',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: 'var(--font-weight-medium)'
+          }}
+        >
+          View
+        </button>
+      )
     }
   ];
 
+  const filteredLeaves = leaves.filter(leave => {
+    if (statusFilter === 'All') return true;
+    return leave.status === statusFilter.toLowerCase();
+  });
+
   return (
     <Card title="Leave History" subtitle="Your past and pending requests">
+      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', overflowX: 'auto', paddingBottom: '4px' }}>
+        {['All', 'Pending', 'Approved', 'Rejected'].map(filter => (
+          <button
+            key={filter}
+            onClick={() => setStatusFilter(filter)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-full)',
+              border: '1px solid',
+              borderColor: statusFilter === filter ? 'var(--color-primary)' : 'var(--border-color)',
+              backgroundColor: statusFilter === filter ? 'var(--color-primary-light)' : 'var(--bg-surface)',
+              color: statusFilter === filter ? 'var(--color-primary)' : 'var(--text-secondary)',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 'var(--font-weight-medium)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            {filter}
+          </button>
+        ))}
+      </div>
       <DataTable
         columns={columns}
-        data={leaves}
+        data={filteredLeaves}
         isLoading={isLoading}
+        searchable={true}
+        searchPlaceholder="Search history..."
+      />
+      <LeaveRequestDetailsModal
+        isOpen={!!selectedLeave}
+        onClose={() => setSelectedLeave(null)}
+        leave={selectedLeave}
       />
     </Card>
   );
