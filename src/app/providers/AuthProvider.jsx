@@ -26,21 +26,19 @@ export const AuthProvider = ({ children }) => {
             employeeId: userDoc?.employeeId || 'EMP-1001',
           });
         } catch (err) {
-          console.warn('Could not fetch user profile from Firestore, using fallback profile:', err);
+          console.warn('Could not fetch user profile from Firestore:', err);
+          // Still set user from real Firebase Auth; Firestore role lookup failed
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
           });
+          setRole('employee');
         }
       } else {
-        // Demo fallback for initial evaluation if auth not logged in yet
-        setUser({
-          uid: 'demo-user-123',
-          email: 'alex.morgan@dayflow.hr',
-          displayName: 'Alex Morgan',
-          employeeId: 'EMP-2026',
-        });
+        // No active Firebase Auth session — clear user state
+        setUser(null);
+        setRole('employee');
       }
       setLoading(false);
     });

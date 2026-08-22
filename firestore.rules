@@ -12,14 +12,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function getUserRole() {
+      let userRef = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userRef)
+        ? get(userRef).data.role
+        : 'employee';
     }
 
     function isHR() {
       return isSignedIn() && (
-        getUserData().role == 'hr' || 
-        getUserData().role == 'admin' ||
+        getUserRole() == 'hr' ||
+        getUserRole() == 'admin' ||
         request.auth.token.role == 'hr' ||
         request.auth.token.role == 'admin'
       );
