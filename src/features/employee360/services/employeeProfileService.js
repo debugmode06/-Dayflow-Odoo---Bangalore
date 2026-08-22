@@ -1,6 +1,7 @@
 import {
   doc,
   getDoc,
+  setDoc,
   updateDoc,
   serverTimestamp,
   collection,
@@ -16,14 +17,77 @@ import { PROTECTED_FIELDS } from '../utils/profilePermissions';
 
 /**
  * Fetch a user's full profile from Firestore users/{uid}.
- * The profile is the authoritative identity document created during signup.
+ *
+ * If the document does not exist (e.g. signup transaction failed), a minimal
+ * profile document is auto-created using Firebase Auth metadata so the user
+ * can immediately use the app.
+ *
+ * Error mapping:
+ *   permission-denied → Firestore rules not deployed / user not authenticated
+ *   missing document  → auto-created from Firebase Auth data
  */
 export const fetchEmployeeProfile = async (uid) => {
   if (!uid) throw new Error('No UID provided.');
-  const ref_ = doc(db, 'users', uid);
-  const snap = await getDoc(ref_);
-  if (!snap.exists()) throw new Error('Profile not found.');
-  return { id: snap.id, ...snap.data() };
+
+  const docRef = doc(db, 'users', uid);
+
+  try {
+    const snap = await getDoc(docRef);
+
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() };
+    }
+
+    // ── Document missing: auto-create from Firebase Auth ──────────────────
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.uid !== uid) {
+      throw new Error('Profile document not found and cannot be created for another user.');
+    }
+
+    console.info('[Employee360] Profile document missing — auto-creating from Firebase Auth data.');
+
+    const profileData = {
+      uid,
+      email: currentUser.email || '',
+      displayName: currentUser.displayName || '',
+      role: 'employee',
+      status: 'active',
+      emailVerified: currentUser.emailVerified,
+      employeeId: '',         // Will be filled when HR assigns it
+      phone: '',
+      address: '',
+      department: '',
+      designation: '',
+      joiningDate: '',
+      profilePicture: currentUser.photoURL || null,
+      documents: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    await setDoc(docRef, profileData);
+    console.info('[Employee360] Profile document created for UID:', uid);
+
+    // Return the created profile (serverTimestamp not yet resolved — use local date)
+    return {
+      id: uid,
+      ...profileData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  } catch (err) {
+    if (err?.code === 'permission-denied') {
+      console.error(
+        '[Employee360] Firestore permission denied reading users/' + uid + '.\n' +
+        'Deploy firestore.rules: firebase deploy --only firestore:rules'
+      );
+      throw new Error(
+        'permission-denied: Firestore rules not yet deployed. ' +
+        'Run: firebase deploy --only firestore:rules'
+      );
+    }
+    throw err;
+  }
 };
 
 /**

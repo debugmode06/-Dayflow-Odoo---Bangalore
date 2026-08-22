@@ -48,6 +48,7 @@ const Employee360Page = () => {
     error,
     timelineLoading,
     attendanceLoading,
+    usingMockData,
     refreshProfile,
     patchProfile,
   } = useEmployeeProfile(targetUid);
@@ -119,17 +120,23 @@ const Employee360Page = () => {
     );
   }
 
-  // ── Profile not found ──────────────────────────────────────────────────────
+  // ── Profile error state ────────────────────────────────────────────────────
   if (error || !profile) {
+    const isPermissionError = error?.includes('permission-denied');
+    const title = isPermissionError ? 'Access Denied' : 'Profile Unavailable';
+    const message = isPermissionError
+      ? 'Firestore security rules blocked this read. Ensure firebase deploy --only firestore:rules has been run.'
+      : (error || 'Employee profile could not be loaded.');
+
     return (
       <div style={{ maxWidth: '600px', margin: '40px auto' }}>
-        <Card title="Profile Unavailable">
+        <Card title={title}>
           <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
             <AlertCircle size={48} color="var(--color-danger)" style={{ margin: '0 auto var(--space-4)' }} />
-            <p style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>
-              {error || 'Employee profile not found.'}
+            <p style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
+              {message}
             </p>
-            <Button variant="secondary" size="sm" onClick={() => navigate(-1)} style={{ marginTop: 'var(--space-4)' }}>
+            <Button variant="secondary" size="sm" onClick={() => navigate(-1)}>
               Go Back
             </Button>
           </div>
