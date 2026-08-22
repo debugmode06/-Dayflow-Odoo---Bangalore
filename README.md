@@ -1,124 +1,96 @@
-# Odoo-2026-Bangalore-
-# Dayflow — Human Resource Management System
+# DAYFLOW — Human Resource Management System (HRMS)
 
-**Every workday, perfectly aligned.**
+> **Every workday, perfectly aligned.**
 
-Dayflow is a modern Human Resource Management System (HRMS) designed to digitize and streamline essential HR operations through a centralized platform.
+Dayflow is a premium, modern, responsive Human Resource Management System built on React, Vite, and Firebase. It unifies Employee Profiles, Attendance Intelligence, Smart Leave, Payroll, Workforce Availability, and AI Explainability into one cohesive SaaS product.
 
-## 🚀 Overview
+---
 
-Dayflow connects **Employees** and **HR/Admin** in one system for managing:
+## 🏗️ Architecture & Module Ownership
 
-* 🔐 Secure authentication and role-based access
-* 👤 Employee profiles and information
-* ⏱️ Attendance tracking and intelligence
-* 🏖️ Leave and time-off management
-* 💰 Payroll and salary visibility
-* 📊 HR analytics and centralized management
-* 🔥 Workforce insights and actionable alerts
+Dayflow follows a **feature-based architecture**. Shared design tokens, UI components, layout shell, routing, and Firebase infrastructure reside in shared directories. Each feature module owns its pages, components, services, hooks, and feature-specific utilities.
 
-## 👥 User Roles
+### Shared Foundation (Frozen after initial commit)
+* `src/components/ui/` — Design System components (Button, Input, Select, Modal, Drawer, Card, Badge, Avatar, DataTable, Skeleton, EmptyState, ErrorState, Toast)
+* `src/components/layout/` — App Shell (AppShell, Sidebar, Topbar, MobileNav)
+* `src/components/feedback/` — Feedback screens (LoadingScreen, ErrorBoundary)
+* `src/config/` — Firebase, Constants, Navigation
+* `src/styles/` — Design tokens (`tokens.css`), reset (`globals.css`), animations (`animations.css`)
+* `src/lib/` — Firebase wrappers, Calculation helpers, Utilities
 
-### Employee
+### Feature Modules (Individual Ownership)
 
-Employees can:
+| Feature Module | Responsibilities | Assigned Owner |
+|---|---|---|
+| `src/features/auth/` | Authentication, Role-based Access, Route Guards | **Member 1** |
+| `src/features/employees/` | Employee 360° Profile, HR Employee Directory, Activity Timeline | **Member 1** |
+| `src/features/attendance/` | Check-in/Check-out, Attendance Intelligence, Score & Patterns | **Member 2** |
+| `src/features/leave/` | Leave Applications, Approvals, HR Comments, Leave Impact Simulator | **Member 3** |
+| `src/features/payroll/` | Salary Visibility, Compensation Structures, HR Payroll Control | **Member 4** |
+| `src/features/workforce/` | HR Command Center, Workforce Pulse Analytics, AI Explainability | **Member 4** |
 
-* Sign up and securely log in
-* View and manage their profile
-* Check in and check out
-* View daily and weekly attendance
-* Apply for Paid, Sick, or Unpaid leave
-* Track leave request status
-* View salary information
+---
 
-### HR / Admin
+## 🌿 Git Branch Strategy
 
-HR/Admin can:
-
-* Manage employee records
-* View employee profiles
-* Monitor attendance
-* Review and approve/reject leave requests
-* Add approval comments
-* View and update salary structures
-* Access HR analytics and reports
-
-## ✨ Key Features
-
-### 1. Employee 360° Profile
-
-A centralized employee view containing personal details, job information, salary structure, documents, profile picture, and activity history.
-
-### 2. Smart Attendance Intelligence
-
-Employees can check in/out and track attendance, while the system provides attendance summaries and identifies unusual attendance patterns.
-
-### 3. Smart Leave Management
-
-Employees can submit leave requests while HR can approve or reject them. The system also provides a **Leave Impact Simulator** to highlight potential workforce availability issues before approval.
-
-### 4. HR Command Center
-
-A centralized dashboard giving HR a quick overview of employees, attendance, pending leave requests, payroll information, alerts, and important actions.
-
-### 5. Payroll Management
-
-Employees can securely view their salary information, while HR can manage employee salary structures.
-
-### 6. Workforce Pulse
-
-A consolidated workforce-health indicator generated from attendance, leave, availability, and employee data, with explanations and actionable insights.
-
-## 💡 Innovation
-
-Dayflow goes beyond traditional HR record management by transforming workforce data into actionable insights.
-
-Instead of simply answering:
-
-> "What happened?"
-
-Dayflow aims to help HR understand:
-
-> **"What is happening, why does it matter, and what should I look at next?"**
-
-## 🔄 Core Workflow
+Work strictly on feature branches off `develop`. Do not commit directly to `main`.
 
 ```text
-Employee Login
-      ↓
-Employee Dashboard
-      ↓
-Profile / Attendance / Leave / Payroll
-      ↓
-Employee submits Leave
-      ↓
-Leave Impact Analysis
-      ↓
-HR Command Center
-      ↓
-HR Approves / Rejects
-      ↓
-Employee receives updated status
-      ↓
-Workforce analytics update
+main
+ └── develop
+      ├── feature/member-1-identity
+      ├── feature/member-2-attendance
+      ├── feature/member-3-leave
+      └── feature/member-4-command-center
 ```
 
-## 🛠️ Technology Stack
+### Commit Message Standards
+* `feat(module): add check-in action button`
+* `fix(module): resolve leave simulator percentage calculation`
+* `refactor(module): optimize attendance pattern detection`
+* `chore(project): update dependencies`
 
-* **Frontend:** React
-* **Backend:** Node.js / Express
-* **Database:** MongoDB
-* **Authentication:** Role-based authentication
-* **Architecture:** Modular full-stack architecture
+---
 
-## 🎯 Project Goal
+## 🎨 Design System
 
-To provide a centralized, modern, and scalable HR platform that simplifies everyday HR operations for employees and enables HR/Admin teams to make faster, more informed workforce decisions.
+Dayflow enforces an **iPhone-inspired, premium light theme visual language**:
+* **Clean white surfaces** (`#FFFFFF`) on soft neutral backgrounds (`#F8FAFC`).
+* **Strong typography hierarchy** (Inter / System SF Display).
+* **Generous spacing** and rounded card containers (`16px` border radius).
+* **Subtle, high-contrast borders** (`#E2E8F0`) with soft depth shadows.
+* **Micro-interactions** for interactive state feedback.
 
-## 📌 MVP Focus
+---
 
-The MVP focuses on delivering the core HRMS workflow reliably:
+## 🔒 Security & Data Principles
 
-**Authentication → Employee Management → Attendance → Leave → Approval → Payroll → HR Analytics**
+1. **Firebase Authentication UID** is the primary security identity. Employee ID is stored separately.
+2. **Firestore Security Rules** (`firestore.rules`) enforce strict authorization for employees (owner-only access) and HR/Admins.
+3. **AI Explainability**: Minimal structured operational signals are sent to the AI model. No personal identifiable information (PII) or salary amounts are transmitted.
+4. **Resilience**: Rule-based fallback engines guarantee application functionality even if AI services are offline.
 
-with intelligent enhancements such as **Attendance Intelligence, Leave Impact Analysis, Employee 360°, and Workforce Pulse**.
+---
+
+## 🚀 Getting Started
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env` and supply your Firebase credentials:
+```bash
+cp .env.example .env
+```
+
+### 3. Run Local Development Server
+```bash
+npm run dev
+```
+
+### 4. Build Production Bundle
+```bash
+npm run build
+```

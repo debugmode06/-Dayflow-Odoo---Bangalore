@@ -1,0 +1,110 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for authorization
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isHR() {
+      return isSignedIn() && (
+        getUserData().role == 'hr' || 
+        getUserData().role == 'admin' ||
+        request.auth.token.role == 'hr' ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    // Users Collection (Identities mapped to Firebase Auth UID)
+    match /users/{userId} {
+      allow read: if isSignedIn() && (isOwner(userId) || isHR());
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && (isOwner(userId) || isHR());
+      allow delete: if isHR();
+    }
+
+    // Employees Collection (360 Profiles)
+    match /employees/{employeeId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isOwner(employeeId) || 
+        isHR()
+      );
+      allow create, update, delete: if isHR();
+    }
+
+    // Attendance Collection
+    match /attendance/{attendanceId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isHR()
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        isHR()
+      );
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isHR()
+      );
+      allow delete: if isHR();
+    }
+
+    // Leave Requests Collection
+    match /leaves/{leaveId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isHR()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        (resource.data.userId == request.auth.uid && resource.data.status == 'pending') ||
+        isHR()
+      );
+      allow delete: if isHR();
+    }
+
+    // Payroll Collection
+    match /payroll/{payrollId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isHR()
+      );
+      allow create, update, delete: if isHR();
+    }
+
+    // Activity Logs Collection
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isHR()
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isHR();
+    }
+
+    // Workforce Snapshots Collection
+    match /workforceSnapshots/{snapshotId} {
+      allow read: if isHR();
+      allow write: if isHR();
+    }
+
+    // Notifications Collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}
