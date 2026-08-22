@@ -50,12 +50,25 @@ service cloud.firestore {
         isHR()
       );
       allow create: if isSignedIn() && (
-        request.resource.data.userId == request.auth.uid ||
-        isHR()
+        isHR() || (
+          request.resource.data.userId == request.auth.uid &&
+          request.resource.data.employeeId == getUserData().employeeId &&
+          request.resource.data.checkIn != null &&
+          request.resource.data.checkOut == null &&
+          request.resource.data.workingDuration == null &&
+          request.resource.data.status == 'PRESENT'
+        )
       );
       allow update: if isSignedIn() && (
-        resource.data.userId == request.auth.uid || 
-        isHR()
+        isHR() || (
+          resource.data.userId == request.auth.uid &&
+          resource.data.checkOut == null &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.employeeId == resource.data.employeeId &&
+          request.resource.data.checkIn == resource.data.checkIn &&
+          request.resource.data.date == resource.data.date &&
+          request.resource.data.status == resource.data.status
+        )
       );
       allow delete: if isHR();
     }

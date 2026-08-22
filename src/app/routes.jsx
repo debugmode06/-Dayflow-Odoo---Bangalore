@@ -13,6 +13,7 @@ import {
   HRAIAssistantDrawer,
   fetchWorkforcePulseInsight,
 } from '@/features/workforce';
+import { EmployeeAttendance } from '@/features/attendance/components/EmployeeAttendance';
 
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -166,7 +167,7 @@ export const AppRoutes = () => {
         {/* Employee Routes */}
         <Route path="/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back, Alex. Your workday is aligned." roleMode="employee" />} />
         <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
-        <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
+        <Route path="/attendance" element={<EmployeeAttendance />} />
         <Route path="/leave" element={<DayflowDashboard title="Smart Leave & Time-Off" subtitle="Applications & Leave Impact Simulator" roleMode="employee" />} />
         <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
 

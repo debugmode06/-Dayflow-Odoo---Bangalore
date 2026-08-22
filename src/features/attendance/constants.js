@@ -1,0 +1,22 @@
+export const ATTENDANCE_STATUS = {
+  PRESENT: 'PRESENT',
+  ABSENT: 'ABSENT',
+  HALF_DAY: 'HALF_DAY',
+  LEAVE: 'LEAVE',
+};
+
+export const VERIFICATION_STATUS = {
+  VERIFIED: 'VERIFIED',
+  NOT_VERIFIED: 'NOT_VERIFIED',
+  PENDING: 'PENDING',
+  FAILED: 'FAILED',
+};
+
+export const VERIFICATION_TYPE = {
+  GEOFENCE: 'GEOFENCE',
+  MANUAL: 'MANUAL',
+};
+
+export const COLLECTION_NAME = 'attendance';
+
+export const ATTENDANCE_TIMEZONE = 'Asia/Kolkata';
