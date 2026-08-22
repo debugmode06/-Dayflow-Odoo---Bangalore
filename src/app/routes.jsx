@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/features/auth';
 import { LoginPage, SignupPage, VerificationGate } from '@/features/auth';
 import NotFound from '@/pages/NotFound';
 import Unauthorized from '@/pages/Unauthorized';
-import { EmployeeDashboardPage } from '@/pages/EmployeeDashboardPage';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import DataTable from '@/components/ui/DataTable';
 import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage';
 import { AttendanceIntelligencePage } from '@/features/attendance/pages/AttendanceIntelligencePage';
 import {
   HRCommandCenterPage,
   HREmployeeDirectoryPage,
   HRAttendanceMonitorPage,
+  WorkforcePulseCard,
+  WorkforcePulseDrawer,
+  HRAIAssistantDrawer,
+  fetchWorkforcePulseInsight,
 } from '@/features/workforce';
 import {
   PayrollPage,
@@ -21,6 +27,134 @@ import {
   EmployeeLeaveDashboard,
   HRLeaveDashboard,
 } from '@/features/leave';
+
+// Original DayflowDashboard component
+const DayflowDashboard = ({ title, subtitle, roleMode }) => {
+  const [pulseData, setPulseData] = useState(null);
+  const [whyDrawerOpen, setWhyDrawerOpen] = useState(false);
+  const [assistantDrawerOpen, setAssistantDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const initialMetrics = {
+      attendanceScore: 91,
+      availabilityScore: 82,
+      leaveLoadScore: 84,
+      profileHealthScore: 88,
+      lateArrivals: 6,
+      absences: 2,
+      recentPatterns: [
+        'Late arrivals increased from 3 to 6 this week',
+        'Team availability decreased due to overlapping approved leave',
+      ],
+    };
+
+    fetchWorkforcePulseInsight(initialMetrics).then((res) => {
+      setPulseData(res);
+    });
+  }, []);
+
+  const mockTableData = [
+    { id: 'EMP-1001', name: 'Sarah Jenkins', department: 'Engineering', status: 'present', score: 98, role: 'Senior Developer' },
+    { id: 'EMP-1002', name: 'Marcus Vance', department: 'Product', status: 'late', score: 88, role: 'Product Manager' },
+    { id: 'EMP-1003', name: 'Elena Rostova', department: 'Design', status: 'on-leave', score: 95, role: 'Lead Designer' },
+    { id: 'EMP-1004', name: 'David Kim', department: 'Marketing', status: 'present', score: 99, role: 'Growth Specialist' },
+  ];
+
+  const columns = [
+    { header: 'Employee ID', accessor: 'id' },
+    {
+      header: 'Employee Name',
+      accessor: 'name',
+      cell: (row) => (
+        <div>
+          <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{row.name}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{row.role}</div>
+        </div>
+      ),
+    },
+    { header: 'Department', accessor: 'department' },
+    {
+      header: 'Attendance Status',
+      accessor: 'status',
+      cell: (row) => {
+        const variants = { present: 'success', late: 'warning', 'on-leave': 'info' };
+        return <Badge variant={variants[row.status] || 'default'} dot>{row.status.toUpperCase()}</Badge>;
+      },
+    },
+    {
+      header: 'Score',
+      accessor: 'score',
+      cell: (row) => (
+        <span style={{ fontWeight: 'var(--font-weight-bold)', color: row.score >= 90 ? 'var(--color-success-text)' : 'var(--color-warning-text)' }}>
+          {row.score}%
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      {/* Header Banner */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)' }}>{title}</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>{subtitle}</p>
+        </div>
+        <Badge variant={roleMode === 'hr' ? 'ai' : 'info'} size="md">
+          {roleMode === 'hr' ? 'HR Command Active' : 'Employee Workspace'}
+        </Badge>
+      </div>
+
+      {/* Primary Workforce Pulse Component */}
+      {pulseData && (
+        <WorkforcePulseCard
+          pulseData={pulseData}
+          onOpenWhyDrawer={() => setWhyDrawerOpen(true)}
+          onOpenAssistantDrawer={() => setAssistantDrawerOpen(true)}
+        />
+      )}
+
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
+        <Card title="Attendance Score" subtitle="30-day trailing avg">
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-success-text)', marginTop: '8px' }}>
+            91.0%
+          </div>
+        </Card>
+
+        <Card title="Team Availability" subtitle="Current active staffing">
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-primary)', marginTop: '8px' }}>
+            82.0%
+          </div>
+        </Card>
+
+        <Card title="Leave Load" subtitle="Scheduled time-off index">
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-warning-text)', marginTop: '8px' }}>
+            84.0%
+          </div>
+        </Card>
+      </div>
+
+      {/* Shared Data & Security Verification Table */}
+      <Card title="Active Department Roster" subtitle="Real-time employee attendance status & profile health">
+        <DataTable columns={columns} data={mockTableData} />
+      </Card>
+
+      {/* Side Drawers */}
+      <WorkforcePulseDrawer
+        isOpen={whyDrawerOpen}
+        onClose={() => setWhyDrawerOpen(false)}
+        pulseData={pulseData || {}}
+      />
+
+      <HRAIAssistantDrawer
+        isOpen={assistantDrawerOpen}
+        onClose={() => setAssistantDrawerOpen(false)}
+        metricsContext={pulseData?.metrics || {}}
+      />
+    </div>
+  );
+};
 
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -81,7 +215,7 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute><AppShellLayout /></ProtectedRoute>}>
         
         {/* Employee Routes */}
-        <Route path="/employee/dashboard" element={<EmployeeDashboardPage />} />
+        <Route path="/employee/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back. Your workday is aligned." roleMode="employee" />} />
         <Route path="/profile" element={<EmployeeProfilePage />} />
         <Route path="/attendance" element={<AttendanceIntelligencePage />} />
         <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />
