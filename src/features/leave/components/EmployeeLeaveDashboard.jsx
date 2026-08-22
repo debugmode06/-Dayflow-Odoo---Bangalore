@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { subscribeToEmployeeLeaves } from '../services/leaveService';
 import LeaveApplicationForm from './LeaveApplicationForm';
 import LeaveHistoryTable from './LeaveHistoryTable';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 

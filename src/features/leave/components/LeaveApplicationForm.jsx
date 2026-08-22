@@ -5,7 +5,7 @@ import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import { applyForLeave } from '../services/leaveService';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export const LeaveApplicationForm = () => {
   const { user } = useAuth();
