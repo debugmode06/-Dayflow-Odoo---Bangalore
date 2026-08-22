@@ -25,11 +25,21 @@ service cloud.firestore {
       );
     }
 
+    // Employee IDs Registry (For Uniqueness Validation)
+    match /employeeIds/{empId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isHR();
+    }
+
     // Users Collection (Identities mapped to Firebase Auth UID)
     match /users/{userId} {
       allow read: if isSignedIn() && (isOwner(userId) || isHR());
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && (isOwner(userId) || isHR());
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.role == 'employee';
+      allow update: if isSignedIn() && (
+        isHR() || 
+        (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions', 'isAdmin']))
+      );
       allow delete: if isHR();
     }
 

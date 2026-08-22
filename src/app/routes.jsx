@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AppShell from '@/components/layout/AppShell';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/features/auth';
+import { LoginPage, SignupPage, VerificationGate } from '@/features/auth';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import DataTable from '@/components/ui/DataTable';
@@ -20,16 +21,47 @@ import {
 
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user, role, loading } = useAuth();
+  const { isAuthenticated, role, loading } = useAuth();
 
   if (loading) return null;
-  if (!user) return <Navigate to="/unauthorized" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   if (requiredRole === 'hr' && role !== 'hr' && role !== 'admin') {
     return <Navigate to="/unauthorized" replace />;
   }
 
+  return <VerificationGate>{children}</VerificationGate>;
+};
+
+// Route Guard for unauthenticated only (e.g. Login page)
+const PublicOnlyRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) return null;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  
   return children;
+};
+
+// Dashboard Route Dispatcher
+const DashboardDispatcher = () => {
+  const { role, loading } = useAuth();
+  
+  if (loading) return null;
+  
+  if (role === 'hr' || role === 'admin') {
+    return <Navigate to="/hr/dashboard" replace />;
+  }
+  
+  return <Navigate to="/employee/dashboard" replace />;
+};
+
+const AppShellLayout = () => {
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 };
 
 // Interactive Workspace Dashboard with NVIDIA NIM Llama 3.1 8B Workforce Pulse Integration
@@ -163,16 +195,26 @@ const DayflowDashboard = ({ title, subtitle, roleMode }) => {
 
 export const AppRoutes = () => {
   return (
-    <AppShell>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <Routes>
+      {/* Public Auth Routes */}
+      <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+      <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
 
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardDispatcher /></ProtectedRoute>} />
+
+      {/* Application Shell (Protected Routes) */}
+      <Route element={<ProtectedRoute><AppShellLayout /></ProtectedRoute>}>
+        
         {/* Employee Routes */}
-        <Route path="/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back, Alex. Your workday is aligned." roleMode="employee" />} />
+        <Route path="/employee/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back. Your workday is aligned." roleMode="employee" />} />
         <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
         <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
         <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />
         <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
+
+        {/* Legacy redirect for old links */}
+        <Route path="/dashboard" element={<Navigate to="/employee/dashboard" replace />} />
 
         {/* HR / Admin Protected Routes */}
         <Route
@@ -223,12 +265,12 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-
+        
         {/* Error & Fallback Routes */}
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AppShell>
+      </Route>
+    </Routes>
   );
 };
 
