@@ -21,18 +21,29 @@ export const applyForLeave = async (userId, userName, leaveData) => {
     status: 'pending',
     hrComment: '',
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 };
 
 export const subscribeToEmployeeLeaves = (userId, callback) => {
   const q = query(
     collection(db, 'leaves'), 
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   );
   return onSnapshot(q, (snapshot) => {
-    const leaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let leaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // Sort on client to avoid requiring a Firestore composite index
+    leaves.sort((a, b) => {
+      const dateA = a.createdAt ? (a.createdAt.seconds || 0) : 0;
+      const dateB = b.createdAt ? (b.createdAt.seconds || 0) : 0;
+      return dateB - dateA;
+    });
+
     callback(leaves);
+  }, (error) => {
+    console.error("Snapshot error:", error);
+    callback([]);
   });
 };
 
