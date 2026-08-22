@@ -88,3 +88,37 @@ export const generateVisualAsset = onCall({ cors: true }, async (request) => {
     provider: 'nvidia-nim-flux',
   };
 });
+
+/**
+ * 5. Secure Sanitized Leaves Aggregation
+ */
+export const getSanitizedLeaves = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required.');
+  }
+
+  try {
+    const db = admin.firestore();
+    const leavesSnap = await db.collection('leaves').get();
+    
+    // Strip PII (userName, userId, reason, hrComment) and return only date blocks
+    const sanitizedLeaves = leavesSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        status: data.status,
+        type: data.type
+      };
+    });
+
+    return {
+      success: true,
+      leaves: sanitizedLeaves
+    };
+  } catch (error) {
+    console.error('Error fetching sanitized leaves:', error);
+    throw new HttpsError('internal', 'Unable to aggregate leave data safely.');
+  }
+});

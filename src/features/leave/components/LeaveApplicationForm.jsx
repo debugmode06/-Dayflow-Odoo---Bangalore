@@ -6,8 +6,11 @@ import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import { applyForLeave } from '../services/leaveService';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { calculateLeaveDuration } from '../intelligence/leaveImpactEngine';
+import SmartLeavePreview from './SmartLeavePreview';
+import BestLeaveDates from './BestLeaveDates';
 
-export const LeaveApplicationForm = () => {
+export const LeaveApplicationForm = ({ onActiveRequestChange, allLeaves = [] }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     type: 'Vacation',
@@ -17,6 +20,16 @@ export const LeaveApplicationForm = () => {
   });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+
+  React.useEffect(() => {
+    if (onActiveRequestChange) {
+      const duration = calculateLeaveDuration(formData.startDate, formData.endDate);
+      onActiveRequestChange({
+        type: formData.type,
+        duration: duration
+      });
+    }
+  }, [formData.type, formData.startDate, formData.endDate, onActiveRequestChange]);
 
   const leaveTypes = [
     { value: 'Vacation', label: 'Vacation' },
@@ -88,7 +101,20 @@ export const LeaveApplicationForm = () => {
           onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
           required
         />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+
+        <SmartLeavePreview 
+          startDate={formData.startDate}
+          endDate={formData.endDate}
+          userId={user?.uid}
+          allLeaves={allLeaves}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--space-2)' }}>
+          <BestLeaveDates 
+            allLeaves={allLeaves}
+            userId={user?.uid}
+            onApplyDates={(start, end) => setFormData({ ...formData, startDate: start, endDate: end })}
+          />
           <Button type="submit" isLoading={loading}>Submit Request</Button>
         </div>
       </form>

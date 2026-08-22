@@ -1,4 +1,5 @@
-import { db } from '@/config/firebase';
+import app, { db } from '@/config/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { 
   collection, 
   addDoc, 
@@ -33,6 +34,18 @@ export const subscribeToEmployeeLeaves = (userId, callback) => {
     const leaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(leaves);
   });
+};
+
+export const fetchSanitizedLeaves = async () => {
+  try {
+    const functionsInstance = getFunctions(app);
+    const getSanitizedFn = httpsCallable(functionsInstance, 'getSanitizedLeaves');
+    const response = await getSanitizedFn();
+    return response.data.leaves || [];
+  } catch (error) {
+    console.error('Error fetching sanitized leaves:', error);
+    return [];
+  }
 };
 
 export const subscribeToAllLeaves = (callback) => {
