@@ -10,16 +10,36 @@ import { auth, db } from '@/config/firebase';
 import { DEFAULT_ROLE } from '../utils/roles';
 import { mapAuthError } from '../utils/authErrors';
 
+import { withFallback, mockHelpers } from '@/lib/demoMode';
+
 /**
  * Log in a user with email and password
  */
 export const login = async (email, password) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    throw new Error(mapAuthError(error));
-  }
+  return await withFallback(
+    async () => {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential.user;
+    },
+    async () => {
+      // Demo Mode Fallback
+      const users = mockHelpers.getCollection('users');
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (!user) {
+        throw new Error("Invalid email or password. (Demo Mode)");
+      }
+      // Minimal password check for demo
+      if (password !== 'HrAdmin@123' && password !== 'password123') {
+        throw new Error("Invalid email or password. (Demo Mode)");
+      }
+
+      localStorage.setItem('demo_user_uid', user.uid);
+      window.dispatchEvent(new Event('demo_auth_change'));
+      return { uid: user.uid, email: user.email, emailVerified: true };
+    },
+    'auth_login'
+  );
 };
 
 /**

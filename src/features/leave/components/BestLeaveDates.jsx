@@ -104,10 +104,10 @@ export const BestLeaveDates = ({ allLeaves = [], userId, onApplyDates }) => {
           color: 'var(--color-primary)',
           display: 'flex',
           alignItems: 'center',
-          gap: 'var(--space-2)'
+          gap: 'var(--space-5)'
         }}
       >
-        ✦ Find Best Leave Dates
+        
       </Button>
 
       {isOpen && (

@@ -20,6 +20,15 @@ import {
 } from '@/features/leave';
 import { EmployeeDashboard } from '@/features/dashboard/components/EmployeeDashboard';
 
+// Import new module components
+import { EmployeeProfile } from '@/features/dashboard/components/EmployeeProfile';
+import { AttendanceDashboard } from '@/features/attendance/components/AttendanceDashboard';
+import { PayrollDashboard } from '@/features/payroll/components/PayrollDashboard';
+import { HRCommandCenter } from '@/features/dashboard/components/HRCommandCenter';
+import { EmployeeDirectory } from '@/features/employees/components/EmployeeDirectory';
+import { HRAttendanceMonitor } from '@/features/attendance/components/HRAttendanceMonitor';
+import { HRPayrollDashboard } from '@/features/payroll/components/HRPayrollDashboard';
+
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { isAuthenticated, role, loading } = useAuth();
@@ -209,10 +218,10 @@ export const AppRoutes = () => {
         
         {/* Employee Routes */}
         <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-        <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
-        <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
+        <Route path="/profile" element={<EmployeeProfile />} />
+        <Route path="/attendance" element={<AttendanceDashboard />} />
         <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />
-        <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
+        <Route path="/payroll" element={<PayrollDashboard />} />
 
         {/* Legacy redirect for old links */}
         <Route path="/dashboard" element={<Navigate to="/employee/dashboard" replace />} />
@@ -222,7 +231,7 @@ export const AppRoutes = () => {
           path="/hr/dashboard"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="HR Command Center" subtitle="Centralized HR workforce management" roleMode="hr" />
+              <HRCommandCenter />
             </ProtectedRoute>
           }
         />
@@ -230,7 +239,7 @@ export const AppRoutes = () => {
           path="/hr/employees"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Employee Management Directory" subtitle="All staff profiles and access management" roleMode="hr" />
+              <EmployeeDirectory />
             </ProtectedRoute>
           }
         />
@@ -238,7 +247,7 @@ export const AppRoutes = () => {
           path="/hr/attendance"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="HR Attendance Monitor" subtitle="Daily & weekly workforce check-in tracking" roleMode="hr" />
+              <HRAttendanceMonitor />
             </ProtectedRoute>
           }
         />
@@ -254,7 +263,7 @@ export const AppRoutes = () => {
           path="/hr/payroll"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Payroll & Compensation Control" subtitle="Salary structures & salary visibility" roleMode="hr" />
+              <HRPayrollDashboard />
             </ProtectedRoute>
           }
         />

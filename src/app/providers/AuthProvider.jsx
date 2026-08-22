@@ -19,15 +19,55 @@ export const AuthProvider = ({ children }) => {
   const handleLogout = useCallback(async () => {
     setLoading(true);
     try {
-      await logout();
+      const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+      if (IS_DEMO_MODE) {
+        localStorage.removeItem('demo_user_uid');
+        window.dispatchEvent(new Event('demo_auth_change'));
+      } else {
+        await logout();
+      }
     } catch (e) {
       console.error('Logout failed', e);
     } finally {
-      // onAuthStateChanged will handle setting user to null
+      // onAuthStateChanged or demo_auth_change will handle setting user to null
     }
   }, []);
 
   useEffect(() => {
+    const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+    
+    if (IS_DEMO_MODE) {
+      const updateDemoAuth = () => {
+        const demoUserId = localStorage.getItem('demo_user_uid');
+        if (demoUserId) {
+          const store = JSON.parse(localStorage.getItem('dayflow_demo_state')) || {};
+          const users = store.users || [];
+          const userDoc = users.find(u => u.uid === demoUserId);
+          if (userDoc) {
+            setProfile(userDoc);
+            setRole(userDoc.role);
+            setIsEmailVerified(true);
+            setUser({
+              uid: userDoc.uid,
+              email: userDoc.email,
+              displayName: userDoc.name,
+              logout: handleLogout
+            });
+          }
+        } else {
+          setUser(null);
+          setProfile(null);
+          setRole(null);
+          setIsEmailVerified(false);
+        }
+        setLoading(false);
+      };
+
+      updateDemoAuth();
+      window.addEventListener('demo_auth_change', updateDemoAuth);
+      return () => window.removeEventListener('demo_auth_change', updateDemoAuth);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setIsEmailVerified(firebaseUser.emailVerified);
