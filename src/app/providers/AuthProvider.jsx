@@ -1,46 +1,60 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { subscribeToAuthChanges, logoutUser } from '@/lib/firebase/auth';
-import { getDocument } from '@/lib/firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/config/firebase';
+import { logout } from '@/features/auth/services/authService';
 import LoadingScreen from '@/components/feedback/LoadingScreen';
+import { DEFAULT_ROLE } from '@/features/auth/utils/roles';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState('employee'); // 'employee' | 'hr' | 'admin'
+  const [profile, setProfile] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch user metadata/role from Firestore /users/{uid}
+        setIsEmailVerified(firebaseUser.emailVerified);
+        
         try {
-          const userDoc = await getDocument('users', firebaseUser.uid);
-          const userRole = userDoc?.role || 'employee';
-          setRole(userRole);
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName || userDoc?.name || firebaseUser.email?.split('@')[0],
-            photoURL: firebaseUser.photoURL || userDoc?.avatarUrl,
-            employeeId: userDoc?.employeeId || 'EMP-1001',
-          });
-        } catch (err) {
-          console.warn('Could not fetch user profile from Firestore, using fallback profile:', err);
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            setProfile(userData);
+            setRole(userData.role || DEFAULT_ROLE);
+          } else {
+            console.warn('User profile not found in Firestore for UID:', firebaseUser.uid);
+            setProfile(null);
+            setRole(DEFAULT_ROLE);
+          }
+          
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
+            photoURL: firebaseUser.photoURL,
+            logout: handleLogout
           });
+        } catch (err) {
+          console.error('Error fetching user profile:', err);
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            logout: handleLogout
+          });
+          setRole(DEFAULT_ROLE);
         }
       } else {
-        // Demo fallback for initial evaluation if auth not logged in yet
-        setUser({
-          uid: 'demo-user-123',
-          email: 'alex.morgan@dayflow.hr',
-          displayName: 'Alex Morgan',
-          employeeId: 'EMP-2026',
-        });
+        setUser(null);
+        setProfile(null);
+        setRole(null);
+        setIsEmailVerified(false);
       }
       setLoading(false);
     });
@@ -51,25 +65,25 @@ export const AuthProvider = ({ children }) => {
   const handleLogout = async () => {
     setLoading(true);
     try {
-      await logoutUser();
+      await logout();
     } catch (e) {
       console.error('Logout failed', e);
     } finally {
-      setUser(null);
-      setLoading(false);
+      // onAuthStateChanged will handle setting user to null
     }
   };
 
   const value = {
-    user: user ? { ...user, logout: handleLogout } : null,
+    user,
+    profile,
     role,
-    setRole, // Enabled for smooth demo role switching
     isAuthenticated: !!user,
+    isEmailVerified,
     loading,
   };
 
   if (loading) {
-    return <LoadingScreen message="Initializing Dayflow security context..." />;
+    return <LoadingScreen message="Authenticating..." />;
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
