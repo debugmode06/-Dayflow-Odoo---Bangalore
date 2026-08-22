@@ -18,6 +18,7 @@ const svc = USE_LOCAL_DEV ? devService : prodService;
 
 // ─── Common utility ───────────────────────────────────────────────────────────
 export const getAttendanceDate        = (...args) => svc.getAttendanceDate(...args);
+export const getAttendanceDateStr     = (...args) => svc.getAttendanceDate(...args);
 export const getAttendanceDocId       = (...args) => svc.getAttendanceDocId(...args);
 
 // ─── Read operations ──────────────────────────────────────────────────────────
@@ -36,6 +37,9 @@ export const DEV_EMPLOYEES          = USE_LOCAL_DEV ? devService.DEV_EMPLOYEES  
 export const DEV_DEPARTMENTS        = USE_LOCAL_DEV ? devService.DEV_DEPARTMENTS        : ['All Departments'];
 export const HR_CONFIGURED_LOCATION = devService.HR_CONFIGURED_LOCATION;
 export const getDevUser             = USE_LOCAL_DEV ? devService.getDevUser             : null;
+
+/** Reset today's session (dev mode only). */
+export const resetTodaySession      = USE_LOCAL_DEV ? devService.resetTodaySession      : () => {};
 
 /** True when running in local development mode (no Firebase). */
 export { USE_LOCAL_DEV };

@@ -208,3 +208,11 @@ export const getAllEmployeesAttendance = async (dateStr, filters = {}) => {
 
   return results;
 };
+
+/**
+ * Reset today's session for a user (dev mode only — for re-testing the check-in/check-out flow).
+ */
+export const resetTodaySession = (userId) => {
+  const targetUid = userId || DEV_USER.uid;
+  _todaySessions.delete(targetUid);
+};

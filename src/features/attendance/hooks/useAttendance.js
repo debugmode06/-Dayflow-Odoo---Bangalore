@@ -7,6 +7,7 @@ import {
   getWeeklyAttendance,
   getAttendanceHistory,
   getAttendanceDate,
+  resetTodaySession,
   DEV_USER,
   USE_LOCAL_DEV,
 } from '../dev/attendanceDataProvider';
@@ -80,17 +81,16 @@ export const useAttendance = () => {
     if (!user?.uid) return;
     try {
       const now = new Date();
-
-      // Calculate week bounds (past 7 days)
       const weekStart = new Date(now);
       weekStart.setDate(now.getDate() - 6);
       const startStr = getAttendanceDate(weekStart);
       const endStr = getAttendanceDate(now);
 
-      const weekly = await getWeeklyAttendance(USE_LOCAL_DEV ? 'ALL' : user.uid, startStr, endStr, { allEmployees: USE_LOCAL_DEV });
+      // Always fetch ONLY the logged-in user's records for the employee page
+      const weekly = await getWeeklyAttendance(user.uid, startStr, endStr, {});
       setWeeklyRecords(weekly);
 
-      const history = await getAttendanceHistory(USE_LOCAL_DEV ? 'ALL' : user.uid, { endDate: endStr, allEmployees: USE_LOCAL_DEV });
+      const history = await getAttendanceHistory(user.uid, { endDate: endStr });
       setHistoryRecords(history);
     } catch (err) {
       console.error('Error loading history:', err);
@@ -167,6 +167,17 @@ export const useAttendance = () => {
     loadTodayAttendance(); // Reload state
   };
 
+  /** Dev-mode only: clear today's session so CHECK IN / CHECK OUT can be re-tested */
+  const resetToday = () => {
+    if (USE_LOCAL_DEV) {
+      resetTodaySession(user?.uid);
+    }
+    setTodayRecord(null);
+    setPresenceData(null);
+    setErrorMsg(null);
+    setUiState(ATTENDANCE_UI_STATE.READY);
+  };
+
   return {
     uiState,
     todayRecord,
@@ -177,6 +188,7 @@ export const useAttendance = () => {
     handleStartDay,
     handleEndDay,
     resetError,
+    resetToday,
     loadWeeklyAndHistory,
   };
 };

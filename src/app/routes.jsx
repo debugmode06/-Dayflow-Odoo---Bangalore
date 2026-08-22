@@ -14,6 +14,7 @@ import {
   fetchWorkforcePulseInsight,
 } from '@/features/workforce';
 import { EmployeeAttendance } from '@/features/attendance/components/EmployeeAttendance';
+import { HRAttendance } from '@/features/attendance/components/HRAttendance';
 import { AttendanceIntelligence } from '@/features/attendance/components/intelligence/AttendanceIntelligence';
 import { AttendanceDemoPage } from '@/features/attendance/components/AttendanceDemoPage';
 import EmployeeDirectory from '@/features/employees/components/EmployeeDirectory';
@@ -198,7 +199,7 @@ export const AppRoutes = () => {
           path="/hr/attendance"
           element={
             <ProtectedRoute requiredRole="hr">
-              <EmployeeAttendance />
+              <HRAttendance />
             </ProtectedRoute>
           }
         />
