@@ -1,12 +1,18 @@
 import { initialMockState } from '../data/mockData';
 
 const DEMO_STORE_KEY = 'dayflow_demo_state';
+const STORE_VERSION = '2'; // Bump this when mockData changes to force re-seed
 const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
-// Initialize localStorage if empty
+// Initialize localStorage if empty or outdated version
 const initializeStore = () => {
-  if (!localStorage.getItem(DEMO_STORE_KEY)) {
+  const stored = localStorage.getItem(DEMO_STORE_KEY);
+  const storedVersion = localStorage.getItem(`${DEMO_STORE_KEY}_version`);
+  
+  if (!stored || storedVersion !== STORE_VERSION) {
     localStorage.setItem(DEMO_STORE_KEY, JSON.stringify(initialMockState));
+    localStorage.setItem(`${DEMO_STORE_KEY}_version`, STORE_VERSION);
+    console.log('[DEMO MODE] Store (re-)seeded with latest mock data v' + STORE_VERSION);
   }
 };
 

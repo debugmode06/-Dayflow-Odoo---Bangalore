@@ -22,15 +22,21 @@ export const login = async (email, password) => {
       return userCredential.user;
     },
     async () => {
-      // Demo Mode Fallback
+      // Demo Mode Fallback — match against primary email OR emailAliases
       const users = mockHelpers.getCollection('users');
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = users.find(u => {
+        const primaryMatch = u.email.toLowerCase() === normalizedEmail;
+        const aliasMatch = Array.isArray(u.emailAliases) && 
+          u.emailAliases.some(alias => alias.toLowerCase() === normalizedEmail);
+        return primaryMatch || aliasMatch;
+      });
       
       if (!user) {
         throw new Error("Invalid email or password. (Demo Mode)");
       }
-      // Minimal password check for demo
-      if (password !== 'HrAdmin@123' && password !== 'password123') {
+      // Accept any non-empty password in demo mode for convenience
+      if (!password || password.length < 3) {
         throw new Error("Invalid email or password. (Demo Mode)");
       }
 

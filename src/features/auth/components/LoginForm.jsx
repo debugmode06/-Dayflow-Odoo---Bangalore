@@ -4,38 +4,44 @@ import { login } from '../services/authService';
 import PasswordField from './PasswordField';
 import { validateEmail, validatePassword } from '../utils/authValidation';
 
+const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
+const DEMO_ACCOUNTS = [
+  { label: '👤 Employee', email: 'mohan@dayflow.demo', password: 'demo1234', color: '#6366f1' },
+  { label: '🛡️ HR Admin', email: 'hr@dayflow.demo', password: 'demo1234', color: '#0ea5e9' },
+];
+
 export const LoginForm = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
   const [errors, setErrors] = useState({});
   const [globalError, setGlobalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const doLogin = async (emailVal, passwordVal) => {
     setGlobalError('');
-    
-    const emailErr = validateEmail(email);
-    const passErr = validatePassword(password);
-    
-    if (emailErr || passErr) {
-      setErrors({ email: emailErr, password: passErr });
-      return;
-    }
     setErrors({});
-    
     setIsSubmitting(true);
     try {
-      await login(email, password);
-      // Let AuthProvider and ProtectedRoutes handle redirect
-      navigate('/dashboard'); 
+      await login(emailVal, passwordVal);
+      navigate('/dashboard');
     } catch (err) {
       setGlobalError(err.message);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const emailErr = validateEmail(email);
+    const passErr = validatePassword(password);
+    if (emailErr || passErr) {
+      setErrors({ email: emailErr, password: passErr });
+      return;
+    }
+    await doLogin(email, password);
   };
 
   return (
@@ -51,6 +57,54 @@ export const LoginForm = () => {
           border: '1px solid var(--color-danger)'
         }}>
           {globalError}
+        </div>
+      )}
+
+      {/* ⚡ Quick Demo Login Buttons */}
+      {IS_DEMO_MODE && (
+        <div style={{ marginBottom: 'var(--space-5)' }}>
+          <p style={{
+            fontSize: '11px',
+            textAlign: 'center',
+            color: 'var(--text-tertiary)',
+            marginBottom: 'var(--space-2)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em'
+          }}>
+            ⚡ Quick Demo Access
+          </p>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => doLogin(acc.email, acc.password)}
+                style={{
+                  flex: 1,
+                  padding: '10px 8px',
+                  backgroundColor: acc.color,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  fontSize: '13px',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: isSubmitting ? 0.7 : 1,
+                  transition: 'opacity 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                {isSubmitting ? '...' : acc.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-4) 0 var(--space-2)' }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>or sign in manually</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
+          </div>
         </div>
       )}
 

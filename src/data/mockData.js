@@ -4,6 +4,8 @@ export const mockUsers = [
   {
     uid: "EMP1001",
     email: "mohan@dayflow.demo",
+    // Real email aliases — any of these can be used to log in
+    emailAliases: ["mr.mohan.s143@gmail.com", "mohan@dayflow.demo"],
     role: "employee",
     employeeId: "EMP-1001",
     firstName: "Mohan",
