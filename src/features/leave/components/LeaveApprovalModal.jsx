@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { calculateLeaveImpact } from '../intelligence/leaveImpactEngine';
 
-export const LeaveApprovalModal = ({ isOpen, onClose, leave, onApprove, onReject }) => {
+export const LeaveApprovalModal = ({ isOpen, onClose, leave, allLeaves = [], onApprove, onReject }) => {
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const impact = useMemo(() => {
+    if (!leave) return null;
+    return calculateLeaveImpact({
+      requestedStartDate: leave.startDate,
+      requestedEndDate: leave.endDate,
+      requestingUserId: leave.userId,
+      existingLeaves: allLeaves,
+      totalEmployees: 100 // Fallback workforce
+    });
+  }, [leave, allLeaves]);
 
   if (!leave) return null;
 
@@ -49,6 +62,20 @@ export const LeaveApprovalModal = ({ isOpen, onClose, leave, onApprove, onReject
             {leave.reason}
           </div>
         </div>
+
+        {impact && (
+          <div style={{ padding: 'var(--space-3)', backgroundColor: 'var(--bg-surface-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)' }}>Simulated Impact</span>
+              <Badge variant={impact.impactLevel === 'HIGH' ? 'danger' : impact.impactLevel === 'MEDIUM' ? 'warning' : 'success'}>
+                {impact.impactLevel} IMPACT
+              </Badge>
+            </div>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+              {impact.explanation}
+            </div>
+          </div>
+        )}
 
         <Input
           label="HR Comment (Optional)"

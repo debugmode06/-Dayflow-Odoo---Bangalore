@@ -88,6 +88,7 @@ export const HRLeaveRequestsTable = ({ leaves = [], isLoading }) => {
         isOpen={!!selectedLeave}
         onClose={() => setSelectedLeave(null)}
         leave={selectedLeave}
+        allLeaves={leaves}
         onApprove={handleApprove}
         onReject={handleReject}
       />
