@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useHRDashboard } from '../hooks/useHRDashboard';
 import { MetricCard } from '../components/MetricCard';
 import { NeedsAttention } from '../components/NeedsAttention';
 import { DashboardSkeleton } from '../components/DashboardSkeleton';
 import { Users, UserCheck, UserMinus, UserCog, Sparkles } from 'lucide-react';
+import { useWorkforcePulse } from '../hooks/useWorkforcePulse';
+import WorkforcePulseCard from '../components/WorkforcePulseCard';
+import WorkforcePulseDrawer from '../components/WorkforcePulseDrawer';
 import '../styles/hr-dashboard.css';
 
 export const HRCommandCenterPage = () => {
   const { stats, isLoading, error } = useHRDashboard();
+  const { pulseData, loading: pulseLoading, error: pulseError } = useWorkforcePulse();
+  const [isPulseDrawerOpen, setPulseDrawerOpen] = useState(false);
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -110,7 +115,17 @@ export const HRCommandCenterPage = () => {
             </div>
           </div>
 
-          {/* Coming Next Preview */}
+          {pulseLoading ? (
+            <p>Loading Workforce Pulse...</p>
+          ) : pulseError ? (
+            <p>Error loading Workforce Pulse: {pulseError}</p>
+          ) : (
+            <WorkforcePulseCard
+              pulseData={pulseData}
+              onOpenWhyDrawer={() => setPulseDrawerOpen(true)}
+              onOpenAssistantDrawer={() => {}}
+            />
+          )}
           <div className="hr-card coming-next-card">
             <span className="pulse-badge">Coming Next</span>
             <div className="flex justify-center mb-3 text-indigo-500">
@@ -121,8 +136,13 @@ export const HRCommandCenterPage = () => {
               Predictive analytics, automated engagement tracking, and intelligent HR insights.
             </p>
           </div>
-        </div>
+          </div> {/* right column */}
+        </div> {/* hr-main-grid */}
+        <WorkforcePulseDrawer
+          isOpen={isPulseDrawerOpen}
+          onClose={() => setPulseDrawerOpen(false)}
+          pulseData={pulseData}
+        />
       </div>
-    </div>
   );
 };

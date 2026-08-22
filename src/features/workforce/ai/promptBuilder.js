@@ -1,35 +1,34 @@
 /**
- * Prompt Builder for Workforce Pulse AI Explanation
- * Enforces privacy: Minimum structured data only, no PII or salary data!
+ * Safely strips PII and builds a prompt for the AI.
  */
+export const buildInsightPrompt = (pulseData) => {
+  // Extract only aggregate data, completely ignoring employee IDs, names, etc.
+  const safeData = {
+    pulseScore: pulseData.score,
+    pulseStatus: pulseData.status,
+    attendanceScore: pulseData.signals.attendance.score,
+    availabilityScore: pulseData.signals.availability.score,
+    leaveHealthScore: pulseData.signals.leaveHealth.score,
+    profileHealthScore: pulseData.signals.profileHealth.score,
+    lates: pulseData.signals.attendance.breakdown.lates,
+    absences: pulseData.signals.attendance.breakdown.absences,
+    pendingLeaves: pulseData.signals.leaveHealth.breakdown.pending,
+    overlappingLeaves: pulseData.signals.leaveHealth.breakdown.overlapping,
+  };
 
-export const buildWorkforcePrompt = (metrics) => {
-  const {
-    attendanceScore = 95,
-    availabilityPercentage = 90,
-    leaveLoadCount = 3,
-    recentAnomaliesCount = 1,
-    departmentSummary = 'Engineering: 90% present, Product: 95% present',
-  } = metrics;
+  const prompt = `
+    You are an expert HR analytics AI. Analyze the following aggregate workforce pulse data and provide a concise 3-4 sentence explanation of the workforce health.
+    Do NOT state the exact scores (e.g., don't say "Attendance is 91").
+    Do NOT calculate the official score.
+    Do NOT invent data.
+    Do NOT recommend firing, hiring, or making automated employment decisions.
+    
+    Data:
+    ${JSON.stringify(safeData, null, 2)}
+    
+    Format:
+    Provide a professional, human-readable summary. Recommend a focus area based on the metrics.
+  `;
 
-  return `
-You are the Workforce Intelligence Analyst for Dayflow HRMS.
-Analyze the following minimal aggregated workforce signals and provide a concise, high-level operational explanation for HR/Management.
-
-WORKFORCE METRICS:
-- Overall Attendance Score: ${attendanceScore}%
-- Team Availability Rate: ${availabilityPercentage}%
-- Concurrent Leave Load: ${leaveLoadCount} employees
-- Anomaly Alerts (Late/Absent Patterns): ${recentAnomaliesCount}
-- Department Breakdown: ${departmentSummary}
-
-INSTRUCTIONS:
-1. Provide a 2-sentence executive summary.
-2. List 2 key positive operational signals.
-3. Highlight up to 2 emerging workforce risks (if any).
-4. Suggest 2 recommended review actions for HR.
-Do NOT mention any specific individual's personal or financial details. Format response as JSON.
-`.trim();
+  return prompt;
 };
-
-export default buildWorkforcePrompt;

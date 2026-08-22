@@ -1,23 +1,24 @@
 /**
- * Fallback Workforce Pulse Explanations when AI service is offline or rate limited.
+ * Generates a deterministic fallback insight when AI is unavailable or fails.
  */
+export const getFallbackInsight = (pulseData) => {
+  const { score, status, signals, reasons } = pulseData;
 
-export const generateFallbackInsight = ({ attendanceScore = 95, availability = 90, pendingLeaves = 2 }) => {
-  return {
-    summary: `Workforce operates at ${attendanceScore}% attendance efficiency with ${availability}% active team availability.`,
-    positiveSignals: [
-      'Core department staffing remains above normal operational threshold.',
-      'Leave requests are balanced across engineering and product schedules.',
-    ],
-    emergingRisks: [
-      pendingLeaves > 3 ? `${pendingLeaves} leave requests pending HR authorization.` : 'No critical operational risks identified at this time.',
-    ],
-    recommendedReviews: [
-      'Verify weekly attendance log entries.',
-      'Check upcoming holiday shift schedules.',
-    ],
-    isFallback: true,
-  };
+  if (score === null) {
+    return 'Insufficient data to generate a workforce insight.';
+  }
+
+  let insight = `Workforce health is currently ${status}. `;
+
+  if (signals.attendance.score && signals.attendance.score >= 80) {
+    insight += 'Attendance remains the strongest workforce signal. ';
+  }
+
+  if (reasons.warnings.length > 0) {
+    insight += `However, some areas require attention, particularly: ${reasons.warnings[0].toLowerCase()}. `;
+  }
+
+  insight += 'Availability should be monitored alongside current leave activity.';
+
+  return insight;
 };
-
-export default generateFallbackInsight;

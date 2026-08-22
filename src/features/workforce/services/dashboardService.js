@@ -15,9 +15,11 @@ class DashboardService {
       const employeesSnapshot = await getDocs(employeesRef);
       const totalEmployees = employeesSnapshot.size;
 
+      const employees = [];
       const incompleteProfiles = [];
       employeesSnapshot.forEach(doc => {
         const data = doc.data();
+        employees.push({ id: doc.id, ...data });
         if (!data.department || !data.designation || !data.email) {
           incompleteProfiles.push({ id: doc.id, name: data.name || 'Unknown Employee', ...data });
         }
@@ -37,9 +39,11 @@ class DashboardService {
       let presentToday = 0;
       let absentToday = 0;
       const attendanceAlerts = [];
+      const attendanceRecords = [];
 
       attendanceSnapshot.forEach(doc => {
         const data = doc.data();
+        attendanceRecords.push({ id: doc.id, ...data });
         if (data.status === 'Present') {
           presentToday++;
           if (data.checkInTime && data.late) {
@@ -59,6 +63,7 @@ class DashboardService {
       
       let onLeaveToday = 0;
       const pendingLeaveRequests = [];
+      const leavesToday = [];
 
       leavesSnapshot.forEach(doc => {
         const data = doc.data();
@@ -79,6 +84,7 @@ class DashboardService {
             
             if (today >= startDate && today <= endDate) {
               onLeaveToday++;
+              leavesToday.push({ id: doc.id, ...data });
             }
           }
         }
@@ -106,7 +112,11 @@ class DashboardService {
         totalAccountedPercentage,
         pendingLeaveRequests,
         attendanceAlerts,
-        incompleteProfiles
+        incompleteProfiles,
+        // Raw arrays for Workforce Pulse
+        employees,
+        attendanceRecords,
+        leavesToday
       };
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);

@@ -3,6 +3,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Sparkles, HelpCircle, ArrowUpRight, Activity } from 'lucide-react';
+import AIInsightCard from './AIInsightCard';
 
 export const WorkforcePulseCard = ({
   pulseData,
@@ -68,7 +69,7 @@ export const WorkforcePulseCard = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
             <Sparkles size={14} color="var(--color-ai)" />
             <span style={{ fontSize: '11px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-ai-text)', textTransform: 'uppercase' }}>
-              NVIDIA NIM Llama 3.1 8B Brief
+              AI Workforce Brief
             </span>
           </div>
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)', lineHeight: 1.5 }}>
