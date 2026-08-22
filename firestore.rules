@@ -37,6 +37,16 @@ service cloud.firestore {
         (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions', 'isAdmin']))
       );
       allow delete: if isHR();
+
+      // Activity Timeline Subcollection — path-based ownership, no complex field OR needed
+      match /activityTimeline/{eventId} {
+        // Employee reads own timeline; HR reads any employee timeline
+        allow read: if isSignedIn() && (request.auth.uid == userId || isHR());
+        // Employee or HR can create events on this profile
+        // Employees cannot update/delete — immutable audit trail
+        allow create: if isSignedIn() && (request.auth.uid == userId || isHR());
+        allow update, delete: if isHR();
+      }
     }
 
     // Employees Collection (360 Profiles)

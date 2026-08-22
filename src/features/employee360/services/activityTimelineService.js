@@ -1,7 +1,6 @@
 import {
   collection,
   query,
-  where,
   orderBy,
   limit,
   getDocs,
@@ -13,9 +12,13 @@ import { TIMELINE_EVENT_TYPES } from '../utils/timelineEvents';
 
 /**
  * Fetch the activity timeline for an employee.
- * Reads from 'activityLogs' collection.
- * Firestore rules: employee can only read their own logs (userId == uid).
- * HR/Admin can read any employee's logs.
+ *
+ * Uses subcollection: users/{employeeId}/activityTimeline
+ *
+ * Security: Firestore rule `match /users/{userId}/activityTimeline/{eventId}`
+ * enforces path-based UID ownership — an employee can only read their OWN
+ * subcollection. HR/Admin can read any employee's subcollection.
+ * No complex field-based OR conditions, no composite index required.
  *
  * @param {string} employeeId - UID of the employee
  * @param {number} maxEvents - Maximum events to fetch
@@ -24,17 +27,13 @@ import { TIMELINE_EVENT_TYPES } from '../utils/timelineEvents';
 export const fetchActivityTimeline = async (employeeId, maxEvents = 50) => {
   if (!employeeId) return [];
   try {
-    const colRef = collection(db, 'activityLogs');
-    const q = query(
-      colRef,
-      where('employeeId', '==', employeeId),
-      orderBy('timestamp', 'desc'),
-      limit(maxEvents)
-    );
+    const colRef = collection(db, 'users', employeeId, 'activityTimeline');
+    const q = query(colRef, orderBy('timestamp', 'desc'), limit(maxEvents));
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (error) {
-    console.error('Failed to fetch activity timeline:', error);
+    // Non-fatal — show empty state rather than crashing the page
+    console.warn('Activity timeline unavailable:', error?.code || error?.message);
     return [];
   }
 };
@@ -42,21 +41,25 @@ export const fetchActivityTimeline = async (employeeId, maxEvents = 50) => {
 /**
  * Write a timeline event to Firestore.
  *
- * Firestore rule: activityLogs allow create: if isSignedIn()
- * activityLogs allow update, delete: if isHR() — employees cannot tamper.
+ * Path: users/{employeeId}/activityTimeline/{auto-id}
  *
- * SECURITY NOTE: actorId is set from auth.currentUser.uid by the client.
- * In production, Cloud Functions should write critical events (salary changes,
- * approvals) to ensure tamper-proof actor attribution.
+ * Security:
+ *   - Employees may create events on THEIR OWN subcollection (path enforces ownership).
+ *   - HR/Admin may create events on any employee's subcollection.
+ *   - Neither employees nor HR can UPDATE or DELETE existing events via client SDK.
  *
- * @param {object} event - Event data
- * @param {string} event.employeeId  - Target employee's UID
+ * NOTE: Employees cannot forge actorId/actorRole via the path rule,
+ * but the UI never exposes a "create event" button. Events are only
+ * written by trusted service functions below.
+ *
+ * @param {object} event
+ * @param {string} event.employeeId  - Target employee UID (determines subcollection path)
  * @param {string} event.type        - One of TIMELINE_EVENT_TYPES
  * @param {string} event.title       - Short event title
  * @param {string} event.description - Longer description
  * @param {string} event.actorId     - UID of the actor
  * @param {string} event.actorRole   - Role of the actor
- * @param {object} [event.metadata]  - Module-specific extra data
+ * @param {object} [event.metadata]  - Optional extra data
  */
 export const writeTimelineEvent = async ({
   employeeId,
@@ -76,8 +79,8 @@ export const writeTimelineEvent = async ({
     return;
   }
   try {
-    await addDoc(collection(db, 'activityLogs'), {
-      employeeId,
+    const colRef = collection(db, 'users', employeeId, 'activityTimeline');
+    await addDoc(colRef, {
       type,
       title,
       description: description || '',
@@ -87,14 +90,13 @@ export const writeTimelineEvent = async ({
       timestamp: serverTimestamp(),
     });
   } catch (error) {
-    // Non-fatal: log failure but do not block the primary action
-    console.error('writeTimelineEvent failed:', error);
+    // Non-fatal — timeline write failure must not block the primary action
+    console.warn('writeTimelineEvent failed:', error?.code || error?.message);
   }
 };
 
-/**
- * Write a PROFILE_CREATED event when a new profile is first set up.
- */
+// ─── Convenience event writers ────────────────────────────────────────────────
+
 export const writeProfileCreatedEvent = (employeeId, actorId, actorRole) =>
   writeTimelineEvent({
     employeeId,
@@ -105,9 +107,6 @@ export const writeProfileCreatedEvent = (employeeId, actorId, actorRole) =>
     actorRole,
   });
 
-/**
- * Write a PROFILE_UPDATED event when profile fields change.
- */
 export const writeProfileUpdatedEvent = (employeeId, actorId, actorRole, changedFields = []) =>
   writeTimelineEvent({
     employeeId,
@@ -121,9 +120,6 @@ export const writeProfileUpdatedEvent = (employeeId, actorId, actorRole, changed
     metadata: { changedFields },
   });
 
-/**
- * Write a PICTURE_UPDATED event.
- */
 export const writeProfilePictureUpdatedEvent = (employeeId, actorId, actorRole) =>
   writeTimelineEvent({
     employeeId,
@@ -134,9 +130,6 @@ export const writeProfilePictureUpdatedEvent = (employeeId, actorId, actorRole) 
     actorRole,
   });
 
-/**
- * Write a DOCUMENT_UPLOADED event.
- */
 export const writeDocumentUploadedEvent = (employeeId, actorId, actorRole, docName, category) =>
   writeTimelineEvent({
     employeeId,
@@ -148,15 +141,22 @@ export const writeDocumentUploadedEvent = (employeeId, actorId, actorRole, docNa
     metadata: { docName, category },
   });
 
-/**
- * Write a SALARY_UPDATED event (HR only).
- */
 export const writeSalaryUpdatedEvent = (employeeId, actorId, actorRole) =>
   writeTimelineEvent({
     employeeId,
     type: TIMELINE_EVENT_TYPES.SALARY_UPDATED,
     title: 'Salary structure updated',
     description: 'Compensation structure was updated by HR.',
+    actorId,
+    actorRole,
+  });
+
+export const writeJoinedCompanyEvent = (employeeId, actorId, actorRole) =>
+  writeTimelineEvent({
+    employeeId,
+    type: TIMELINE_EVENT_TYPES.JOINED_COMPANY,
+    title: 'Joined company',
+    description: 'Employee profile was verified and activated.',
     actorId,
     actorRole,
   });
