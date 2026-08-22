@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { subscribeToEmployeeLeaves, subscribeToAllLeaves } from '../services/leaveService';
+import { subscribeToEmployeeLeaves, fetchSanitizedLeaves } from '../services/leaveService';
 import LeaveApplicationForm from './LeaveApplicationForm';
 import LeaveHistoryTable from './LeaveHistoryTable';
 import LeaveCalendar from './LeaveCalendar';
@@ -23,13 +23,13 @@ export const EmployeeLeaveDashboard = ({ title, subtitle, roleMode }) => {
       setLoading(false);
     });
 
-    const unsubscribeAll = subscribeToAllLeaves((data) => {
+    // Fetch sanitized global leaves for deterministic intelligence calculations
+    fetchSanitizedLeaves().then(data => {
       setAllLeaves(data);
     });
 
     return () => {
       unsubscribeEmp();
-      unsubscribeAll();
     };
   }, [user]);
 
