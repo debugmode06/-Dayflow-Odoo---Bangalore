@@ -11,17 +11,24 @@ service firebase.storage {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isHR() {
+      return isSignedIn() && (
+        request.auth.token.role == 'hr' ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
     // Profile pictures
-    match /profile_pictures/{userId}/{allPaths=**} {
+    match /profile-pictures/{userId}/{allPaths=**} {
       allow read: if isSignedIn();
-      allow write: if isOwner(userId) && request.resource.size < 5 * 1024 * 1024
+      allow write: if (isOwner(userId) || isHR()) && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 
     // Employee document uploads
-    match /documents/{userId}/{allPaths=**} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && request.resource.size < 10 * 1024 * 1024;
+    match /employee-documents/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isHR();
+      allow write: if (isOwner(userId) || isHR()) && request.resource.size < 10 * 1024 * 1024;
     }
   }
 }

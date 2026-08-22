@@ -92,10 +92,14 @@ service cloud.firestore {
     // Activity Logs Collection
     match /activityLogs/{logId} {
       allow read: if isSignedIn() && (
+        resource.data.employeeId == request.auth.uid ||
         resource.data.userId == request.auth.uid || 
         isHR()
       );
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() && (
+        request.resource.data.employeeId == request.auth.uid ||
+        isHR()
+      );
       allow update, delete: if isHR();
     }
 
