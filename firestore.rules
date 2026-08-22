@@ -11,17 +11,13 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
 
     function isHR() {
       return isSignedIn() && (
-        getUserData().role == 'hr' || 
-        getUserData().role == 'admin' ||
         request.auth.token.role == 'hr' ||
-        request.auth.token.role == 'admin'
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['hr', 'admin'])
       );
     }
 
@@ -34,11 +30,11 @@ service cloud.firestore {
 
     // Users Collection (Identities mapped to Firebase Auth UID)
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isHR());
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.role == 'employee';
+      allow read: if isSignedIn() && (request.auth.uid == userId || isHR());
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.role == 'employee';
       allow update: if isSignedIn() && (
         isHR() || 
-        (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions', 'isAdmin']))
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions', 'isAdmin']))
       );
       allow delete: if isHR();
     }

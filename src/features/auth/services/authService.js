@@ -33,6 +33,9 @@ export const signup = async (email, password, employeeId) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
+    // Ensure Auth token is propagated to Firestore SDK before executing transaction
+    await user.getIdToken(true);
+
     try {
       // 2. Transactionally ensure Employee ID uniqueness and create profile
       await runTransaction(db, async (transaction) => {
@@ -92,9 +95,10 @@ export const logout = async () => {
  * Resend the verification email to the currently authenticated user
  */
 export const resendVerification = async (user) => {
-  if (!user) throw new Error('No user authenticated.');
+  const currentUser = auth.currentUser || user;
+  if (!currentUser || !currentUser.email) throw new Error('No user authenticated.');
   try {
-    await sendEmailVerification(user);
+    await sendEmailVerification(currentUser);
   } catch (error) {
     throw new Error(mapAuthError(error));
   }
@@ -104,10 +108,11 @@ export const resendVerification = async (user) => {
  * Reload the current user to check if email verification status changed
  */
 export const refreshVerification = async (user) => {
-  if (!user) throw new Error('No user authenticated.');
+  const currentUser = auth.currentUser || user;
+  if (!currentUser) throw new Error('No user authenticated.');
   try {
-    await reload(user);
-    return user.emailVerified;
+    await reload(currentUser);
+    return currentUser.emailVerified;
   } catch (error) {
     throw new Error(mapAuthError(error));
   }

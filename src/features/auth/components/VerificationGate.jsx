@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, RefreshCw, LogOut } from 'lucide-react';
-import { resendVerification, refreshVerification } from '../services/authService';
+import { resendVerification } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
 
 export const VerificationGate = ({ children }) => {
-  const { user, isEmailVerified } = useAuth();
+  const { user, isEmailVerified, refreshAuth } = useAuth();
   const [resending, setResending] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,16 +33,13 @@ export const VerificationGate = ({ children }) => {
     setMessage('');
     setError('');
     try {
-      const verified = await refreshVerification(user);
-      if (verified) {
-        // App should automatically re-render based on auth state changes if possible
-        // But since we are reloading user manually, we can trigger a hard reload if needed.
-        window.location.reload();
-      } else {
-        setMessage('Your email is still not verified.');
+      const verified = await refreshAuth();
+      if (!verified) {
+        setMessage('Your email is not verified yet. Please check your inbox and click the verification link, then try again.');
       }
+      // If verified, isEmailVerified state in AuthProvider will update and children will render
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Unable to check verification status. Please try again.');
     } finally {
       setRefreshing(false);
     }

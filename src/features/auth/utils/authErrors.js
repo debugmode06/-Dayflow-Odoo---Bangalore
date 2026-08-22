@@ -21,10 +21,16 @@ export const mapAuthError = (error) => {
       return 'Network error. Please check your connection and try again.';
     case 'auth/too-many-requests':
       return 'Too many unsuccessful login attempts. Please try again later.';
+    case 'auth/configuration-not-found':
+    case 'auth/operation-not-allowed':
+    case 'auth/admin-restricted-operation':
+      return 'Email/Password sign-in is disabled in your Firebase Console. Please enable Email/Password provider under Authentication > Sign-in method.';
+    case 'auth/invalid-api-key':
+      return 'Invalid Firebase API key. Please check your .env configuration.';
     case 'permission-denied':
-      return 'You do not have permission to access this resource.';
+      return 'Firestore permission denied. Please check database security rules.';
     default:
       console.warn('Unhandled Auth Error:', error.code, error.message);
-      return 'An authentication error occurred. Please try again.';
+      return error.message ? `Authentication error: ${error.message}` : `An authentication error occurred (${error.code || 'unknown'}).`;
   }
 };

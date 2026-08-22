@@ -5,6 +5,7 @@ import { auth, db } from '@/config/firebase';
 import { logout } from '@/features/auth/services/authService';
 import LoadingScreen from '@/components/feedback/LoadingScreen';
 import { DEFAULT_ROLE } from '@/features/auth/utils/roles';
+import { reload } from 'firebase/auth';
 
 export const AuthContext = createContext(null);
 
@@ -74,6 +75,23 @@ export const AuthProvider = ({ children }) => {
   }, [handleLogout]);
 
 
+  // Allows VerificationGate to re-sync email verified state from live Firebase user
+  const refreshAuth = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return false;
+    try {
+      await reload(firebaseUser);
+      const verified = firebaseUser.emailVerified;
+      if (verified) {
+        setIsEmailVerified(true);
+        setUser((prev) => prev ? { ...prev } : prev);
+      }
+      return verified;
+    } catch (err) {
+      console.error('refreshAuth failed:', err);
+      return false;
+    }
+  }, []);
 
   const value = {
     user,
@@ -82,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isEmailVerified,
     loading,
+    refreshAuth,
   };
 
   if (loading) {
