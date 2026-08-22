@@ -8,7 +8,7 @@ export const DayflowAIInsight = ({ insight, onOpenAi }) => {
     <Card 
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          Dayflow AI Insight
+          OdooSphere AI Insight
           <Badge variant="ai" size="sm">BETA</Badge>
         </div>
       }
@@ -50,7 +50,7 @@ export const DayflowAIInsight = ({ insight, onOpenAi }) => {
               gap: '6px'
             }}
           >
-            Ask Dayflow AI <ArrowRight size={12} />
+            Ask OdooSphere AI <ArrowRight size={12} />
           </button>
         </div>
       </div>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { APP_NAME } from '@/config/constants';
 
-export const LoadingScreen = ({ message = 'Loading Dayflow workspace...' }) => {
+export const LoadingScreen = ({ message = 'Loading OdooSphere workspace...' }) => {
   return (
     <div
       style={{

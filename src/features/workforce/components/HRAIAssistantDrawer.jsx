@@ -16,7 +16,7 @@ export const HRAIAssistantDrawer = ({
   const [messages, setMessages] = useState([
     {
       sender: 'ai',
-      text: 'Hello! I am your Dayflow HR Assistant powered by NVIDIA NIM Llama 3.1 8B. Ask me anything about current workforce metrics, attendance patterns, or availability impact.',
+      text: 'Hello! I am your OdooSphere HR Assistant powered by NVIDIA NIM Llama 3.1 8B. Ask me anything about current workforce metrics, attendance patterns, or availability impact.',
     },
   ]);
 
@@ -53,7 +53,7 @@ export const HRAIAssistantDrawer = ({
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="Dayflow HR AI Assistant" width="440px">
+    <Drawer isOpen={isOpen} onClose={onClose} title="OdooSphere HR AI Assistant" width="440px">
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 'var(--space-4)' }}>
         {/* Subtitle Header */}
         <div style={{ padding: '8px 12px', backgroundColor: 'var(--color-ai-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-ai-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

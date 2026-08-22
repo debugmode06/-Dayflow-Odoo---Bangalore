@@ -16,7 +16,7 @@ export const LeaveHistoryTable = ({ leaves = [], isLoading }) => {
     {
       header: 'Dates',
       accessor: 'dates',
-      cell: (row) => <span style={{ color: 'var(--text-secondary)' }}>{row.startDate} to {row.endDate}</span>
+      cell: (row) => <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{row.startDate} to {row.endDate}</span>
     },
     {
       header: 'Reason',

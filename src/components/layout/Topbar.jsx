@@ -45,7 +45,7 @@ export const Topbar = ({
 
         {/* Workspace Title Indicator */}
         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--text-secondary)' }}>
-          Dayflow Enterprise HRMS
+          OdooSphere Enterprise HRMS
         </div>
       </div>
 
@@ -152,7 +152,7 @@ export const Topbar = ({
                   {user?.displayName || 'User'}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  {user?.email || 'user@dayflow.hr'}
+                  {user?.email || 'user@odoosphere.hr'}
                 </div>
               </div>
 

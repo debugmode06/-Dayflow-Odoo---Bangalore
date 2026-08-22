@@ -157,10 +157,7 @@ export const HRCommandCenter = () => {
         </div>
       </section>
 
-      {/* Department Health */}
-      <section aria-label="Department Health Map">
-        {loading ? <Skeleton h={320} /> : <DepartmentHealthMap departments={data?.departments || []} />}
-      </section>
+
 
       {/* What Changed */}
       <section aria-label="What Changed Since Yesterday">
@@ -168,13 +165,10 @@ export const HRCommandCenter = () => {
         {loading ? <Skeleton h={200} /> : <WhatChangedSection changes={data?.changes || []} />}
       </section>
 
-      {/* PREDICT — Tomorrow + Risk Radar */}
-      <section aria-label="Tomorrow Workforce and Risk Radar">
-        <SectionLabel>PREDICT — Tomorrow's Workforce & Risk Radar</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-4)', alignItems: 'start' }}>
-          {loading ? <Skeleton h={340} /> : <TomorrowWorkforce tomorrow={data?.tomorrow} />}
-          {loading ? <Skeleton h={340} /> : <WorkforceRiskRadar risks={data?.risks || []} />}
-        </div>
+      {/* PREDICT — Risk Radar only */}
+      <section aria-label="Workforce Risk Radar">
+        <SectionLabel>PREDICT — Workforce Risk Radar</SectionLabel>
+        {loading ? <Skeleton h={340} /> : <WorkforceRiskRadar risks={data?.risks || []} />}
       </section>
 
       {/* Leave Impact + Capacity */}

@@ -114,7 +114,7 @@ export const BestLeaveDates = ({ allLeaves = [], userId, onApplyDates }) => {
         <Modal title="Find Best Leave Dates" onClose={() => setIsOpen(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <p style={{ color: 'var(--text-secondary)' }}>
-              Ask Dayflow to find the dates with the least workforce disruption for your requested duration.
+              Ask OdooSphere to find the dates with the least workforce disruption for your requested duration.
             </p>
             
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--space-4)' }}>

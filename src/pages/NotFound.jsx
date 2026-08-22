@@ -38,7 +38,7 @@ export const NotFound = () => {
       </h1>
 
       <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--text-secondary)', marginTop: '8px', maxWidth: '400px' }}>
-        The requested page does not exist or has been moved within the Dayflow workspace.
+        The requested page does not exist or has been moved within the OdooSphere workspace.
       </p>
 
       <div style={{ marginTop: 'var(--space-6)' }}>

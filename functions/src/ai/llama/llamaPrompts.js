@@ -35,7 +35,7 @@ export const buildWorkforcePulsePrompt = (metrics) => {
   } = metrics;
 
   return `
-Analyze the following structured Dayflow workforce metrics:
+Analyze the following structured OdooSphere workforce metrics:
 
 METRICS:
 - Workforce Pulse Score: ${workforcePulse}/100

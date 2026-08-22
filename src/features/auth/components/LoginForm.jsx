@@ -7,8 +7,8 @@ import { validateEmail, validatePassword } from '../utils/authValidation';
 const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 const DEMO_ACCOUNTS = [
-  { label: '👤 Employee', email: 'mohan@dayflow.demo', password: 'demo1234', color: '#6366f1' },
-  { label: '🛡️ HR Admin', email: 'hr@dayflow.demo', password: 'demo1234', color: '#0ea5e9' },
+  { label: '👤 Employee', email: 'mohan@odoosphere.demo', password: 'demo1234', color: '#6366f1' },
+  { label: '🛡️ HR Admin', email: 'hr@odoosphere.demo', password: 'demo1234', color: '#0ea5e9' },
 ];
 
 export const LoginForm = () => {
@@ -117,7 +117,7 @@ export const LoginForm = () => {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="name@dayflow.hr"
+          placeholder="name@odoosphere.hr"
           style={{
             width: '100%',
             padding: 'var(--space-2) var(--space-3)',

@@ -89,7 +89,7 @@ export const SignupForm = () => {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="name@dayflow.hr"
+          placeholder="name@odoosphere.hr"
           style={{
             width: '100%',
             padding: 'var(--space-2) var(--space-3)',

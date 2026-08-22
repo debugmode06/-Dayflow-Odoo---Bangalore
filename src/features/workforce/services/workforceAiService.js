@@ -64,7 +64,7 @@ export const fetchWorkforcePulseInsight = async (metrics) => {
       ],
       isFallback: true,
     },
-    provider: 'Dayflow Deterministic Engine (Offline Fallback)',
+    provider: 'OdooSphere Deterministic Engine (Offline Fallback)',
   };
 };
 

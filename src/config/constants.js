@@ -1,4 +1,4 @@
-export const APP_NAME = 'Dayflow';
+export const APP_NAME = 'OdooSphere';
 export const APP_TAGLINE = 'Human Resource Management System';
 
 export const USER_ROLES = {

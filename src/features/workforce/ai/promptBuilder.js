@@ -13,7 +13,7 @@ export const buildWorkforcePrompt = (metrics) => {
   } = metrics;
 
   return `
-You are the Workforce Intelligence Analyst for Dayflow HRMS.
+You are the Workforce Intelligence Analyst for OdooSphere HRMS.
 Analyze the following minimal aggregated workforce signals and provide a concise, high-level operational explanation for HR/Management.
 
 WORKFORCE METRICS:

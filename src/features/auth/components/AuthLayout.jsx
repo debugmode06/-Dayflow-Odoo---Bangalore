@@ -20,7 +20,7 @@ export const AuthLayout = ({ children, title, subtitle }) => {
             letterSpacing: '-0.02em',
             marginBottom: 'var(--space-2)'
           }}>
-            Dayflow
+            OdooSphere
           </div>
           {title && <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-semibold)', marginBottom: 'var(--space-1)' }}>{title}</h1>}
           {subtitle && <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>{subtitle}</p>}

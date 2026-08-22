@@ -176,7 +176,7 @@ const LeaveImpactSimulator = ({ impact, employeeName, leaveDates, leaveType }) =
               </p>
             )}
             <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', textAlign: 'right', marginTop: 'var(--space-2)' }}>
-              Powered by {aiInsight.isFallback ? 'Dayflow Deterministic Engine' : 'NVIDIA NIM Llama 3.1 8B'}
+              Powered by {aiInsight.isFallback ? 'OdooSphere Deterministic Engine' : 'NVIDIA NIM Llama 3.1 8B'}
             </div>
           </div>
         ) : (

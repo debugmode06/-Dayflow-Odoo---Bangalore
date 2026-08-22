@@ -13,7 +13,7 @@ export const AIAssistantShortcut = ({ onOpenAi }) => {
     <Card 
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          Ask Dayflow AI
+          Ask OdooSphere AI
           <Sparkles size={16} color="var(--color-ai)" />
         </div>
       }

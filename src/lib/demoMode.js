@@ -1,7 +1,7 @@
 import { initialMockState } from '../data/mockData';
 
 const DEMO_STORE_KEY = 'dayflow_demo_state';
-const STORE_VERSION = '2'; // Bump this when mockData changes to force re-seed
+const STORE_VERSION = '3'; // Bump this when mockData changes to force re-seed
 const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 // Initialize localStorage if empty or outdated version
