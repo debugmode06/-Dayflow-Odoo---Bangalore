@@ -63,8 +63,8 @@ export const checkIn = async (user, verificationType, verificationStatus) => {
   const role = user?.role || DEV_USER.role || 'Software Engineer';
   const dateStr = getAttendanceDateStr();
 
-  if (_todaySessions.has(userId) && !_todaySessions.get(userId).checkOut) {
-    throw new Error('Already checked in for today.');
+  if (_todaySessions.has(userId)) {
+    throw new Error('Already submitted attendance for today.');
   }
 
   const now = new Date();

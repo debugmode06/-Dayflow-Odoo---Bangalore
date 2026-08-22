@@ -98,7 +98,7 @@ export const useAttendance = () => {
   }, [user]);
 
   const handleStartDay = async () => {
-    if (!user) return;
+    if (!user || uiState !== ATTENDANCE_UI_STATE.READY) return;
     setUiState(ATTENDANCE_UI_STATE.VERIFYING);
     setErrorMsg(null);
     setPresenceData(null);
@@ -146,7 +146,7 @@ export const useAttendance = () => {
   };
 
   const handleEndDay = async () => {
-    if (!user || !todayRecord) return;
+    if (!user || !todayRecord || uiState !== ATTENDANCE_UI_STATE.WORKING) return;
     setUiState(ATTENDANCE_UI_STATE.CHECKOUT_LOADING);
     setErrorMsg(null);
 
