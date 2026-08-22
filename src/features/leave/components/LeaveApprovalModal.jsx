@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
 import { calculateLeaveImpact } from '../intelligence/leaveImpactEngine';
+import LeaveImpactSimulator from './LeaveImpactSimulator';
 
 export const LeaveApprovalModal = ({ isOpen, onClose, leave, allLeaves = [], onApprove, onReject }) => {
   const [comment, setComment] = useState('');
@@ -64,17 +64,12 @@ export const LeaveApprovalModal = ({ isOpen, onClose, leave, allLeaves = [], onA
         </div>
 
         {impact && (
-          <div style={{ padding: 'var(--space-3)', backgroundColor: 'var(--bg-surface-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)' }}>Simulated Impact</span>
-              <Badge variant={impact.impactLevel === 'HIGH' ? 'danger' : impact.impactLevel === 'MEDIUM' ? 'warning' : 'success'}>
-                {impact.impactLevel} IMPACT
-              </Badge>
-            </div>
-            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
-              {impact.explanation}
-            </div>
-          </div>
+          <LeaveImpactSimulator 
+             impact={impact} 
+             employeeName={leave.userName} 
+             leaveDates={`${leave.startDate} to ${leave.endDate}`} 
+             leaveType={leave.type} 
+          />
         )}
 
         <Input
