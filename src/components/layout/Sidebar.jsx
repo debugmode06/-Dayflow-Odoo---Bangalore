@@ -118,7 +118,7 @@ export const Sidebar = ({ role = 'employee', isCollapsed = false, onToggleCollap
       </nav>
 
       {/* AI Pulse Badge Footer */}
-      {!isCollapsed && (
+      {!isCollapsed && (role === 'hr' || role === 'admin') && (
         <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-color-subtle)' }}>
           <div
             style={{

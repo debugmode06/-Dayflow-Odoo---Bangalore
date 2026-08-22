@@ -1,32 +1,58 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AppShell from '@/components/layout/AppShell';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/features/auth';
+import { LoginPage, SignupPage, VerificationGate } from '@/features/auth';
+import NotFound from '@/pages/NotFound';
+import Unauthorized from '@/pages/Unauthorized';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import DataTable from '@/components/ui/DataTable';
-import NotFound from '@/pages/NotFound';
-import Unauthorized from '@/pages/Unauthorized';
-import Login from '@/pages/Login';
-import { HRCommandCenterPage } from '@/features/workforce';
-import { PayrollPage } from '@/features/payroll';
+import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage';
+import { AttendanceIntelligencePage } from '@/features/attendance/pages/AttendanceIntelligencePage';
+import {
+  HRCommandCenterPage,
+  HREmployeeDirectoryPage,
+  HRAttendanceMonitorPage,
+  WorkforcePulseCard,
+  WorkforcePulseDrawer,
+  HRAIAssistantDrawer,
+  fetchWorkforcePulseInsight,
+} from '@/features/workforce';
+import {
+  PayrollPage,
+  EmployeePayrollPage,
+} from '@/features/payroll';
+import {
+  EmployeeLeaveDashboard,
+  HRLeaveDashboard,
+} from '@/features/leave';
 
-// Route Guard Component
-const ProtectedRoute = ({ children, requiredRole }) => {
-  const { user, role, loading } = useAuth();
-
-  if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (requiredRole === 'hr' && role !== 'hr' && role !== 'admin') {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return children;
-};
-
-// Generic Employee Workspace Dashboard Placeholder (No Member 4 HR Analytics)
+// Original DayflowDashboard component
 const DayflowDashboard = ({ title, subtitle, roleMode }) => {
+  const [pulseData, setPulseData] = useState(null);
+  const [whyDrawerOpen, setWhyDrawerOpen] = useState(false);
+  const [assistantDrawerOpen, setAssistantDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const initialMetrics = {
+      attendanceScore: 91,
+      availabilityScore: 82,
+      leaveLoadScore: 84,
+      profileHealthScore: 88,
+      lateArrivals: 6,
+      absences: 2,
+      recentPatterns: [
+        'Late arrivals increased from 3 to 6 this week',
+        'Team availability decreased due to overlapping approved leave',
+      ],
+    };
+
+    fetchWorkforcePulseInsight(initialMetrics).then((res) => {
+      setPulseData(res);
+    });
+  }, []);
+
   const mockTableData = [
     { id: 'EMP-1001', name: 'Sarah Jenkins', department: 'Engineering', status: 'present', score: 98, role: 'Senior Developer' },
     { id: 'EMP-1002', name: 'Marcus Vance', department: 'Product', status: 'late', score: 88, role: 'Product Manager' },
@@ -79,26 +105,124 @@ const DayflowDashboard = ({ title, subtitle, roleMode }) => {
         </Badge>
       </div>
 
-      {/* Shared Data Roster Table */}
+      {/* Primary Workforce Pulse Component */}
+      {pulseData && (
+        <WorkforcePulseCard
+          pulseData={pulseData}
+          onOpenWhyDrawer={() => setWhyDrawerOpen(true)}
+          onOpenAssistantDrawer={() => setAssistantDrawerOpen(true)}
+        />
+      )}
+
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
+        <Card title="Attendance Score" subtitle="30-day trailing avg">
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-success-text)', marginTop: '8px' }}>
+            91.0%
+          </div>
+        </Card>
+
+        <Card title="Team Availability" subtitle="Current active staffing">
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-primary)', marginTop: '8px' }}>
+            82.0%
+          </div>
+        </Card>
+
+        <Card title="Leave Load" subtitle="Scheduled time-off index">
+          <div style={{ fontSize: 'var(--font-size-3xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-warning-text)', marginTop: '8px' }}>
+            84.0%
+          </div>
+        </Card>
+      </div>
+
+      {/* Shared Data & Security Verification Table */}
       <Card title="Active Department Roster" subtitle="Real-time employee attendance status & profile health">
         <DataTable columns={columns} data={mockTableData} />
       </Card>
+
+      {/* Side Drawers */}
+      <WorkforcePulseDrawer
+        isOpen={whyDrawerOpen}
+        onClose={() => setWhyDrawerOpen(false)}
+        pulseData={pulseData || {}}
+      />
+
+      <HRAIAssistantDrawer
+        isOpen={assistantDrawerOpen}
+        onClose={() => setAssistantDrawerOpen(false)}
+        metricsContext={pulseData?.metrics || {}}
+      />
     </div>
+  );
+};
+
+// Route Guard Component
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const { isAuthenticated, role, loading } = useAuth();
+
+  if (loading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (requiredRole === 'hr' && role !== 'hr' && role !== 'admin') {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return <VerificationGate>{children}</VerificationGate>;
+};
+
+// Route Guard for unauthenticated only (e.g. Login page)
+const PublicOnlyRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) return null;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  
+  return children;
+};
+
+// Dashboard Route Dispatcher
+const DashboardDispatcher = () => {
+  const { role, loading } = useAuth();
+  
+  if (loading) return null;
+  
+  if (role === 'hr' || role === 'admin') {
+    return <Navigate to="/hr/dashboard" replace />;
+  }
+  
+  return <Navigate to="/employee/dashboard" replace />;
+};
+
+const AppShellLayout = () => {
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
   );
 };
 
 export const AppRoutes = () => {
   return (
-    <AppShell>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <Routes>
+      {/* Public Auth Routes */}
+      <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+      <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
 
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardDispatcher /></ProtectedRoute>} />
+
+      {/* Application Shell (Protected Routes) */}
+      <Route element={<ProtectedRoute><AppShellLayout /></ProtectedRoute>}>
+        
         {/* Employee Routes */}
-        <Route path="/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back, Alex. Your workday is aligned." roleMode="employee" />} />
-        <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
-        <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
-        <Route path="/leave" element={<DayflowDashboard title="Smart Leave & Time-Off" subtitle="Applications & Leave Impact Simulator" roleMode="employee" />} />
-        <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
+        <Route path="/employee/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back. Your workday is aligned." roleMode="employee" />} />
+        <Route path="/profile" element={<EmployeeProfilePage />} />
+        <Route path="/attendance" element={<AttendanceIntelligencePage />} />
+        <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />
+        <Route path="/payroll" element={<EmployeePayrollPage />} />
+
+        {/* Legacy redirect for old links */}
+        <Route path="/dashboard" element={<Navigate to="/employee/dashboard" replace />} />
 
         {/* HR / Admin Protected Routes */}
         <Route
@@ -113,7 +237,7 @@ export const AppRoutes = () => {
           path="/hr/employees"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Employee Management Directory" subtitle="All staff profiles and access management" roleMode="hr" />
+              <HREmployeeDirectoryPage />
             </ProtectedRoute>
           }
         />
@@ -121,7 +245,7 @@ export const AppRoutes = () => {
           path="/hr/attendance"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="HR Attendance Monitor" subtitle="Daily & weekly workforce check-in tracking" roleMode="hr" />
+              <HRAttendanceMonitorPage />
             </ProtectedRoute>
           }
         />
@@ -129,7 +253,7 @@ export const AppRoutes = () => {
           path="/hr/leave"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Leave Approvals Workflow" subtitle="HR comment & Leave Impact Simulation" roleMode="hr" />
+              <HRLeaveDashboard title="Leave Approvals Workflow" subtitle="Manage company-wide leave requests" roleMode="hr" />
             </ProtectedRoute>
           }
         />
@@ -145,17 +269,16 @@ export const AppRoutes = () => {
           path="/hr/workforce-pulse"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Workforce Pulse AI Explanation" subtitle="NVIDIA NIM Llama 3.1 8B Insights & Anomaly Analysis" roleMode="hr" />
+              <HRCommandCenterPage />
             </ProtectedRoute>
           }
         />
-
-        {/* Auth & Error Routes */}
-        <Route path="/login" element={<Login />} />
+        
+        {/* Error & Fallback Routes */}
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AppShell>
+      </Route>
+    </Routes>
   );
 };
 

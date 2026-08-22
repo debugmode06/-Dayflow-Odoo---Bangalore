@@ -11,28 +11,30 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    
-    function getUserRole() {
-      let userRef = /databases/$(database)/documents/users/$(request.auth.uid);
-      return exists(userRef)
-        ? get(userRef).data.role
-        : 'employee';
-    }
-
     function isHR() {
       return isSignedIn() && (
-        getUserRole() == 'hr' ||
-        getUserRole() == 'admin' ||
         request.auth.token.role == 'hr' ||
-        request.auth.token.role == 'admin'
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['hr', 'admin'])
       );
+    }
+
+    // Employee IDs Registry (For Uniqueness Validation)
+    match /employeeIds/{empId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isHR();
     }
 
     // Users Collection (Identities mapped to Firebase Auth UID)
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isHR());
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && (isOwner(userId) || isHR());
+      allow read: if isSignedIn() && (request.auth.uid == userId || isHR());
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.role == 'employee';
+      allow update: if isSignedIn() && (
+        isHR() || 
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'permissions', 'isAdmin']))
+      );
       allow delete: if isHR();
     }
 
@@ -69,10 +71,10 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid || 
         isHR()
       );
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'pending';
       allow update: if isSignedIn() && (
-        (resource.data.userId == request.auth.uid && resource.data.status == 'pending') ||
-        isHR()
+        isHR() || 
+        (resource.data.userId == request.auth.uid && resource.data.status == 'pending' && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'hrComment']))
       );
       allow delete: if isHR();
     }

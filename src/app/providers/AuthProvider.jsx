@@ -1,73 +1,110 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { subscribeToAuthChanges, logoutUser } from '@/lib/firebase/auth';
-import { getDocument } from '@/lib/firebase/firestore';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/config/firebase';
+import { logout } from '@/features/auth/services/authService';
 import LoadingScreen from '@/components/feedback/LoadingScreen';
+import { DEFAULT_ROLE } from '@/features/auth/utils/roles';
+import { reload } from 'firebase/auth';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState('employee'); // 'employee' | 'hr' | 'admin'
+  const [profile, setProfile] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    setLoading(true);
+    try {
+      await logout();
+    } catch (e) {
+      console.error('Logout failed', e);
+    } finally {
+      // onAuthStateChanged will handle setting user to null
+    }
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthChanges(async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch user metadata/role from Firestore /users/{uid}
+        setIsEmailVerified(firebaseUser.emailVerified);
+        
         try {
-          const userDoc = await getDocument('users', firebaseUser.uid);
-          const userRole = userDoc?.role || 'employee';
-          setRole(userRole);
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName || userDoc?.name || firebaseUser.email?.split('@')[0],
-            photoURL: firebaseUser.photoURL || userDoc?.avatarUrl,
-            employeeId: userDoc?.employeeId || 'EMP-1001',
-          });
-        } catch (err) {
-          console.warn('Could not fetch user profile from Firestore:', err);
-          // Still set user from real Firebase Auth; Firestore role lookup failed
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            setProfile(userData);
+            setRole(userData.role || DEFAULT_ROLE);
+          } else {
+            console.warn('User profile not found in Firestore for UID:', firebaseUser.uid);
+            setProfile(null);
+            setRole(DEFAULT_ROLE);
+          }
+          
           setUser({
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
+            photoURL: firebaseUser.photoURL,
+            logout: handleLogout
           });
-          setRole('employee');
+        } catch (err) {
+          console.error('Error fetching user profile:', err);
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            logout: handleLogout
+          });
+          setRole(DEFAULT_ROLE);
         }
       } else {
-        // No active Firebase Auth session — clear user state
         setUser(null);
-        setRole('employee');
+        setProfile(null);
+        setRole(null);
+        setIsEmailVerified(false);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
+  }, [handleLogout]);
+
+
+  // Allows VerificationGate to re-sync email verified state from live Firebase user
+  const refreshAuth = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return false;
+    try {
+      await reload(firebaseUser);
+      const verified = firebaseUser.emailVerified;
+      if (verified) {
+        setIsEmailVerified(true);
+        setUser((prev) => prev ? { ...prev } : prev);
+      }
+      return verified;
+    } catch (err) {
+      console.error('refreshAuth failed:', err);
+      return false;
+    }
   }, []);
 
-  const handleLogout = async () => {
-    setLoading(true);
-    try {
-      await logoutUser();
-    } catch (e) {
-      console.error('Logout failed', e);
-    } finally {
-      setUser(null);
-      setLoading(false);
-    }
-  };
-
   const value = {
-    user: user ? { ...user, logout: handleLogout } : null,
+    user,
+    profile,
     role,
-    setRole, // Enabled for smooth demo role switching
     isAuthenticated: !!user,
+    isEmailVerified,
     loading,
+    refreshAuth,
   };
 
   if (loading) {
-    return <LoadingScreen message="Initializing Dayflow security context..." />;
+    return <LoadingScreen message="Authenticating..." />;
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

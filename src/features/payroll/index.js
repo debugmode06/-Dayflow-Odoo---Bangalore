@@ -4,6 +4,7 @@
  */
 
 export { PayrollPage } from './pages/PayrollPage';
+export { EmployeePayrollPage } from './pages/EmployeePayrollPage';
 
 export const MODULE_NAME = 'payroll';
 export default {

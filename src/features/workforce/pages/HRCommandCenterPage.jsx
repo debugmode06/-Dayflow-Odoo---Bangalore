@@ -1,18 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHRDashboard } from '../hooks/useHRDashboard';
 import { MetricCard } from '../components/MetricCard';
 import { NeedsAttention } from '../components/NeedsAttention';
 import { DashboardSkeleton } from '../components/DashboardSkeleton';
-import { Users, UserCheck, UserMinus, UserCog, Sparkles } from 'lucide-react';
-import { useWorkforcePulse } from '../hooks/useWorkforcePulse';
-import WorkforcePulseCard from '../components/WorkforcePulseCard';
-import WorkforcePulseDrawer from '../components/WorkforcePulseDrawer';
+import { WorkforcePulseCard } from '../components/WorkforcePulseCard';
+import { WorkforcePulseDrawer } from '../components/WorkforcePulseDrawer';
+import { HRAIAssistantDrawer } from '../components/HRAIAssistantDrawer';
+import { fetchWorkforcePulseInsight } from '../services/workforceAiService';
+import { Users, UserCheck, UserMinus, UserCog } from 'lucide-react';
 import '../styles/hr-dashboard.css';
 
 export const HRCommandCenterPage = () => {
   const { stats, isLoading, error } = useHRDashboard();
-  const { pulseData, loading: pulseLoading, error: pulseError } = useWorkforcePulse();
-  const [isPulseDrawerOpen, setPulseDrawerOpen] = useState(false);
+  const [pulseData, setPulseData] = useState(null);
+  const [whyDrawerOpen, setWhyDrawerOpen] = useState(false);
+  const [assistantDrawerOpen, setAssistantDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const initialMetrics = {
+      attendanceScore: 91,
+      availabilityScore: stats.totalAccountedPercentage || 82,
+      leaveLoadScore: 84,
+      profileHealthScore: 88,
+      lateArrivals: stats.attendanceAlerts?.length || 6,
+      absences: stats.absentToday || 2,
+    };
+
+    fetchWorkforcePulseInsight(initialMetrics).then((res) => {
+      setPulseData(res);
+    });
+  }, [stats]);
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -84,6 +101,24 @@ export const HRCommandCenterPage = () => {
 
         {/* Right Column */}
         <div className="flex flex-col gap-6">
+          {/* Workforce Pulse Card */}
+          <WorkforcePulseCard
+            pulseData={pulseData || {
+              score: 86,
+              metrics: {
+                attendanceScore: 91,
+                availabilityScore: 82,
+                leaveLoadScore: 84,
+                profileHealthScore: 88,
+              },
+              insight: {
+                summary: 'Workforce health remains strong overall. Attendance is healthy, while increased late arrivals and reduced availability are the main areas requiring attention.',
+              },
+            }}
+            onOpenWhyDrawer={() => setWhyDrawerOpen(true)}
+            onOpenAssistantDrawer={() => setAssistantDrawerOpen(true)}
+          />
+
           {/* Workforce Availability */}
           <div className="hr-card availability-card">
             <h3 className="section-title">Workforce Availability</h3>
@@ -114,35 +149,23 @@ export const HRCommandCenterPage = () => {
               </div>
             </div>
           </div>
-
-          {pulseLoading ? (
-            <p>Loading Workforce Pulse...</p>
-          ) : pulseError ? (
-            <p>Error loading Workforce Pulse: {pulseError}</p>
-          ) : (
-            <WorkforcePulseCard
-              pulseData={pulseData}
-              onOpenWhyDrawer={() => setPulseDrawerOpen(true)}
-              onOpenAssistantDrawer={() => {}}
-            />
-          )}
-          <div className="hr-card coming-next-card">
-            <span className="pulse-badge">Coming Next</span>
-            <div className="flex justify-center mb-3 text-indigo-500">
-              <Sparkles size={32} />
-            </div>
-            <h4 className="font-bold text-slate-800 text-lg mb-2">Workforce Pulse & AI</h4>
-            <p className="text-sm">
-              Predictive analytics, automated engagement tracking, and intelligent HR insights.
-            </p>
-          </div>
-          </div> {/* right column */}
-        </div> {/* hr-main-grid */}
-        <WorkforcePulseDrawer
-          isOpen={isPulseDrawerOpen}
-          onClose={() => setPulseDrawerOpen(false)}
-          pulseData={pulseData}
-        />
+        </div>
       </div>
+
+      {/* Side Drawers */}
+      <WorkforcePulseDrawer
+        isOpen={whyDrawerOpen}
+        onClose={() => setWhyDrawerOpen(false)}
+        pulseData={pulseData || {}}
+      />
+
+      <HRAIAssistantDrawer
+        isOpen={assistantDrawerOpen}
+        onClose={() => setAssistantDrawerOpen(false)}
+        metricsContext={pulseData?.metrics || {}}
+      />
+    </div>
   );
 };
+
+export default HRCommandCenterPage;
