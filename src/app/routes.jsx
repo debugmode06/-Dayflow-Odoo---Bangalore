@@ -13,6 +13,10 @@ import {
   HRAIAssistantDrawer,
   fetchWorkforcePulseInsight,
 } from '@/features/workforce';
+import {
+  EmployeeLeaveDashboard,
+  HRLeaveDashboard,
+} from '@/features/leave';
 
 // Route Guard Component
 const ProtectedRoute = ({ children, requiredRole }) => {
@@ -167,7 +171,7 @@ export const AppRoutes = () => {
         <Route path="/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back, Alex. Your workday is aligned." roleMode="employee" />} />
         <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
         <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
-        <Route path="/leave" element={<DayflowDashboard title="Smart Leave & Time-Off" subtitle="Applications & Leave Impact Simulator" roleMode="employee" />} />
+        <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />
         <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
 
         {/* HR / Admin Protected Routes */}
@@ -199,7 +203,7 @@ export const AppRoutes = () => {
           path="/hr/leave"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Leave Approvals Workflow" subtitle="HR comment & Leave Impact Simulation" roleMode="hr" />
+              <HRLeaveDashboard title="Leave Approvals Workflow" subtitle="Manage company-wide leave requests" roleMode="hr" />
             </ProtectedRoute>
           }
         />
