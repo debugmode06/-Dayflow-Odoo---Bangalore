@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AppShell from '@/components/layout/AppShell';
 import { useAuth } from '@/features/auth';
 import { LoginPage, SignupPage, VerificationGate } from '@/features/auth';
-import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
-import DataTable from '@/components/ui/DataTable';
 import NotFound from '@/pages/NotFound';
 import Unauthorized from '@/pages/Unauthorized';
+import { EmployeeDashboardPage } from '@/pages/EmployeeDashboardPage';
+import { EmployeeProfilePage } from '@/features/employees/pages/EmployeeProfilePage';
+import { AttendanceIntelligencePage } from '@/features/attendance/pages/AttendanceIntelligencePage';
 import {
   HRCommandCenterPage,
+  HREmployeeDirectoryPage,
+  HRAttendanceMonitorPage,
 } from '@/features/workforce';
 import {
   PayrollPage,
+  EmployeePayrollPage,
 } from '@/features/payroll';
 import {
   EmployeeLeaveDashboard,
@@ -64,68 +67,6 @@ const AppShellLayout = () => {
   );
 };
 
-// Generic Workspace Dashboard Placeholder (No Member 4 HR Analytics)
-const DayflowDashboard = ({ title, subtitle, roleMode }) => {
-  const mockTableData = [
-    { id: 'EMP-1001', name: 'Sarah Jenkins', department: 'Engineering', status: 'present', score: 98, role: 'Senior Developer' },
-    { id: 'EMP-1002', name: 'Marcus Vance', department: 'Product', status: 'late', score: 88, role: 'Product Manager' },
-    { id: 'EMP-1003', name: 'Elena Rostova', department: 'Design', status: 'on-leave', score: 95, role: 'Lead Designer' },
-    { id: 'EMP-1004', name: 'David Kim', department: 'Marketing', status: 'present', score: 99, role: 'Growth Specialist' },
-  ];
-
-  const columns = [
-    { header: 'Employee ID', accessor: 'id' },
-    {
-      header: 'Employee Name',
-      accessor: 'name',
-      cell: (row) => (
-        <div>
-          <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{row.name}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{row.role}</div>
-        </div>
-      ),
-    },
-    { header: 'Department', accessor: 'department' },
-    {
-      header: 'Attendance Status',
-      accessor: 'status',
-      cell: (row) => {
-        const variants = { present: 'success', late: 'warning', 'on-leave': 'info' };
-        return <Badge variant={variants[row.status] || 'default'} dot>{row.status.toUpperCase()}</Badge>;
-      },
-    },
-    {
-      header: 'Score',
-      accessor: 'score',
-      cell: (row) => (
-        <span style={{ fontWeight: 'var(--font-weight-bold)', color: row.score >= 90 ? 'var(--color-success-text)' : 'var(--color-warning-text)' }}>
-          {row.score}%
-        </span>
-      ),
-    },
-  ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-      {/* Header Banner */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)' }}>{title}</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>{subtitle}</p>
-        </div>
-        <Badge variant={roleMode === 'hr' ? 'ai' : 'info'} size="md">
-          {roleMode === 'hr' ? 'HR Command Active' : 'Employee Workspace'}
-        </Badge>
-      </div>
-
-      {/* Shared Data & Security Verification Table */}
-      <Card title="Active Department Roster" subtitle="Real-time employee attendance status & profile health">
-        <DataTable columns={columns} data={mockTableData} />
-      </Card>
-    </div>
-  );
-};
-
 export const AppRoutes = () => {
   return (
     <Routes>
@@ -140,11 +81,11 @@ export const AppRoutes = () => {
       <Route element={<ProtectedRoute><AppShellLayout /></ProtectedRoute>}>
         
         {/* Employee Routes */}
-        <Route path="/employee/dashboard" element={<DayflowDashboard title="Employee Dashboard" subtitle="Welcome back. Your workday is aligned." roleMode="employee" />} />
-        <Route path="/profile" element={<DayflowDashboard title="Employee 360° Profile" subtitle="Identity & Profile Management Module" roleMode="employee" />} />
-        <Route path="/attendance" element={<DayflowDashboard title="Attendance Intelligence" subtitle="Check-in/out & Attendance Patterns" roleMode="employee" />} />
+        <Route path="/employee/dashboard" element={<EmployeeDashboardPage />} />
+        <Route path="/profile" element={<EmployeeProfilePage />} />
+        <Route path="/attendance" element={<AttendanceIntelligencePage />} />
         <Route path="/leave" element={<EmployeeLeaveDashboard title="Smart Leave & Time-Off" subtitle="Manage your leave requests and balances" roleMode="employee" />} />
-        <Route path="/payroll" element={<DayflowDashboard title="My Payroll & Salary" subtitle="Transparent compensation visibility" roleMode="employee" />} />
+        <Route path="/payroll" element={<EmployeePayrollPage />} />
 
         {/* Legacy redirect for old links */}
         <Route path="/dashboard" element={<Navigate to="/employee/dashboard" replace />} />
@@ -162,7 +103,7 @@ export const AppRoutes = () => {
           path="/hr/employees"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Employee Management Directory" subtitle="All staff profiles and access management" roleMode="hr" />
+              <HREmployeeDirectoryPage />
             </ProtectedRoute>
           }
         />
@@ -170,7 +111,7 @@ export const AppRoutes = () => {
           path="/hr/attendance"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="HR Attendance Monitor" subtitle="Daily & weekly workforce check-in tracking" roleMode="hr" />
+              <HRAttendanceMonitorPage />
             </ProtectedRoute>
           }
         />
@@ -194,7 +135,7 @@ export const AppRoutes = () => {
           path="/hr/workforce-pulse"
           element={
             <ProtectedRoute requiredRole="hr">
-              <DayflowDashboard title="Workforce Pulse AI Explanation" subtitle="NVIDIA NIM Llama 3.1 8B Insights & Anomaly Analysis" roleMode="hr" />
+              <HRCommandCenterPage />
             </ProtectedRoute>
           }
         />

@@ -13,6 +13,8 @@ export {
 } from './services/workforceAiService';
 
 export { HRCommandCenterPage } from './pages/HRCommandCenterPage';
+export { HREmployeeDirectoryPage } from './pages/HREmployeeDirectoryPage';
+export { HRAttendanceMonitorPage } from './pages/HRAttendanceMonitorPage';
 
 export const MODULE_NAME = 'workforce';
 export default {
