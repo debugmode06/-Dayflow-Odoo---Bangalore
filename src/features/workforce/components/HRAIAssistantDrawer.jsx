@@ -133,6 +133,42 @@ export const HRAIAssistantDrawer = ({
           )}
         </div>
 
+        {/* Suggestion Chips */}
+        {messages.length < 3 && !loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+              Suggested Queries
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {[
+                'Why is team availability at 82%?',
+                'Summarize attendance risk',
+                'What actions should HR take today?',
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setQuery(chip);
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    backgroundColor: 'var(--color-ai-bg)',
+                    border: '1px solid var(--color-ai-border)',
+                    color: 'var(--color-ai-text)',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  ✨ {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Input Form */}
         <form onSubmit={handleSend} style={{ display: 'flex', gap: '8px', paddingTop: 'var(--space-2)' }}>
           <Input
