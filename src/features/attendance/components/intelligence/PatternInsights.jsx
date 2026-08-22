@@ -1,43 +1,124 @@
 import React from 'react';
 import Card from '@/components/ui/Card';
 
+/**
+ * Severity config — all icons use Unicode to avoid Windows encoding issues.
+ * HIGH   = U+1F6A8 (rotating light)   -> fallback text [!]
+ * MEDIUM = U+26A0 (warning sign)
+ * LOW    = U+2605 (star)
+ */
+const SEVERITY_CONFIG = {
+  HIGH: {
+    icon: '\u26A0\uFE0F',
+    color: 'var(--color-danger, #dc2626)',
+    bg: '#fef2f2',
+    border: '#fca5a5',
+  },
+  MEDIUM: {
+    icon: '\u26A0',
+    color: 'var(--color-warning, #d97706)',
+    bg: '#fffbeb',
+    border: '#fcd34d',
+  },
+  LOW: {
+    icon: '\u2605',
+    color: 'var(--color-success, #16a34a)',
+    bg: '#f0fdf4',
+    border: '#86efac',
+  },
+};
+
 const PatternInsightCard = ({ pattern }) => {
-  const isHigh = pattern.severity === 'HIGH';
-  const isMedium = pattern.severity === 'MEDIUM';
-  const isLow = pattern.severity === 'LOW'; // Low severity implies positive/neutral
-
-  let icon = 'ℹ️';
-  let color = 'var(--text-secondary)';
-  let bg = 'var(--bg-secondary)';
-
-  if (isHigh) {
-    icon = '🚨';
-    color = 'var(--color-danger)';
-    bg = 'var(--color-danger-bg, #fef2f2)';
-  } else if (isMedium) {
-    icon = '⚠';
-    color = 'var(--color-warning)';
-    bg = 'var(--color-warning-bg, #fffbeb)';
-  } else if (isLow) {
-    icon = '⭐';
-    color = 'var(--color-success)';
-    bg = 'var(--color-success-bg, #f0fdf4)';
-  }
+  const config = SEVERITY_CONFIG[pattern.severity] || SEVERITY_CONFIG.MEDIUM;
 
   return (
-    <div style={{ display: 'flex', gap: '16px', padding: '16px', backgroundColor: bg, borderRadius: '8px', border: `1px solid ${color}33` }}>
-      <div style={{ fontSize: '24px' }}>{icon}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{pattern.title}</h4>
-          <span style={{ fontSize: '11px', fontWeight: 'bold', color, textTransform: 'uppercase' }}>{pattern.severity}</span>
+    <div
+      role="article"
+      aria-label={`Pattern: ${pattern.title}, severity ${pattern.severity}`}
+      style={{
+        display: 'flex',
+        gap: '16px',
+        padding: '16px',
+        backgroundColor: config.bg,
+        borderRadius: '8px',
+        border: `1px solid ${config.border}`,
+      }}
+    >
+      {/* Icon */}
+      <div
+        style={{ fontSize: '22px', lineHeight: 1, flexShrink: 0 }}
+        aria-hidden="true"
+      >
+        {config.icon}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Title + Severity badge */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '8px',
+            marginBottom: '6px',
+          }}
+        >
+          <h4
+            style={{
+              margin: 0,
+              fontSize: '14px',
+              fontWeight: '700',
+              color: 'var(--text-primary)',
+            }}
+          >
+            {pattern.title}
+          </h4>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: '700',
+              color: config.color,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              whiteSpace: 'nowrap',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              border: `1px solid ${config.border}`,
+              backgroundColor: 'rgba(255,255,255,0.6)',
+            }}
+          >
+            {pattern.severity}
+          </span>
         </div>
-        <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>{pattern.explanation}</p>
-        
-        <div style={{ backgroundColor: 'rgba(255,255,255,0.6)', padding: '8px 12px', borderRadius: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+
+        {/* Explanation */}
+        <p
+          style={{
+            margin: '0 0 10px 0',
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.5',
+          }}
+        >
+          {pattern.explanation}
+        </p>
+
+        {/* Evidence list */}
+        <div
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.55)',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: 'var(--text-secondary)',
+          }}
+        >
           <ul style={{ margin: 0, paddingLeft: '16px' }}>
             {pattern.evidence.map((ev, idx) => (
-              <li key={idx}>{ev}</li>
+              <li key={idx} style={{ marginBottom: idx < pattern.evidence.length - 1 ? '4px' : 0 }}>
+                {ev}
+              </li>
             ))}
           </ul>
         </div>
@@ -48,14 +129,53 @@ const PatternInsightCard = ({ pattern }) => {
 
 export const PatternInsights = ({ patterns = [] }) => {
   return (
-    <Card title="Patterns Detected" subtitle="Signals identified from your attendance history.">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+    <Card
+      title="Patterns Detected"
+      subtitle="Signals identified from your attendance history."
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          marginTop: 'var(--space-4)',
+        }}
+      >
         {patterns.length === 0 ? (
-          <div style={{ display: 'flex', gap: '16px', padding: '16px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '24px' }}>✓</div>
+          /* No-pattern steady state */
+          <div
+            style={{
+              display: 'flex',
+              gap: '16px',
+              padding: '16px',
+              backgroundColor: 'var(--bg-secondary, #f9fafb)',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <div style={{ fontSize: '22px' }} aria-hidden="true">
+              {'\u2713'}
+            </div>
             <div>
-              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>LOOKING STEADY</h4>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>No significant attendance patterns detected for this period.</p>
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                LOOKING STEADY
+              </h4>
+              <p
+                style={{
+                  margin: '4px 0 0 0',
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                No significant attendance patterns detected for this period.
+              </p>
             </div>
           </div>
         ) : (
