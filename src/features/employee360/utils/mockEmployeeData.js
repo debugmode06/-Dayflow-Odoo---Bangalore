@@ -72,6 +72,48 @@ export const MOCK_PROFILE = {
     },
   ],
 
+  // Skills & Certifications
+  skills: [
+    { name: 'React.js & Modern Web', level: 'Expert', proficiency: 92 },
+    { name: 'Node.js & Microservices', level: 'Advanced', proficiency: 85 },
+    { name: 'Cloud & Firebase Architecture', level: 'Advanced', proficiency: 80 },
+    { name: 'System Design & Security', level: 'Proficient', proficiency: 75 },
+  ],
+  certifications: [
+    { title: 'AWS Certified Solutions Architect', issuer: 'Amazon Web Services', date: '2023' },
+    { title: 'Certified Scrum Master (CSM)', issuer: 'Scrum Alliance', date: '2022' },
+    { title: 'Dayflow Star Performer Q3', issuer: 'Internal Award', date: '2024' },
+  ],
+
+  // Emergency Contact
+  emergencyContact: {
+    name: 'Sunita Mehta',
+    relation: 'Spouse',
+    phone: '+91 98123 45678',
+  },
+
+  // Bank & Statutory Details
+  bankDetails: {
+    bankName: 'HDFC Bank Ltd.',
+    accountNumber: '50100293847561',
+    ifscCode: 'HDFC0001234',
+    pan: 'ABCDE1234F',
+    uan: '100987654321',
+  },
+
+  // Performance & Goals
+  performance: {
+    rating: 4.8,
+    maxRating: 5.0,
+    reviewPeriod: 'H1 2024 (Jan - Jun)',
+    status: 'Exceeds Expectations',
+    goals: [
+      { title: 'Migrate Core Auth to OAuth 2.0', progress: 100, status: 'Completed' },
+      { title: 'Implement Employee 360° Profile', progress: 100, status: 'Completed' },
+      { title: 'Reduce API Response Latency by 30%', progress: 85, status: 'In Progress' },
+    ],
+  },
+
   createdAt: { toDate: () => new Date('2023-04-01T09:00:00Z') },
   updatedAt: { toDate: () => new Date('2024-11-15T14:30:00Z') },
 };

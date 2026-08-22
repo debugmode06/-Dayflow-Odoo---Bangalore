@@ -14,6 +14,9 @@ import AttendanceSummary from '../components/AttendanceSummary';
 import LeaveHistory from '../components/LeaveHistory';
 import ActivityTimeline from '../components/ActivityTimeline';
 import ProfileEditForm from '../components/ProfileEditForm';
+import SkillsAndCertifications from '../components/SkillsAndCertifications';
+import EmergencyAndBankInfo from '../components/EmergencyAndBankInfo';
+import PerformanceAndGoals from '../components/PerformanceAndGoals';
 import { uploadProfilePicture, updateEmployeeProfile } from '../services/employeeProfileService';
 import {
   writeProfilePictureUpdatedEvent,
@@ -23,13 +26,6 @@ import {
 
 /**
  * Employee360Page — Unified Consolidated 360° Profile View.
- *
- * Error isolation:
- * - Profile load failure → error state, no crash.
- * - Timeline failure → silent empty state, no crash.
- * - Attendance/Leave failure → silent empty state, no crash.
- * - Avatar upload failure → alert, recoverable.
- * - All non-critical failures are caught inside their hooks/services.
  */
 const Employee360Page = () => {
   const { uid: routeUid } = useParams();
@@ -48,7 +44,6 @@ const Employee360Page = () => {
     error,
     timelineLoading,
     attendanceLoading,
-    usingMockData,
     refreshProfile,
     patchProfile,
   } = useEmployeeProfile(targetUid);
@@ -58,7 +53,6 @@ const Employee360Page = () => {
   const [avatarProgress, setAvatarProgress] = useState(0);
 
   // Seed initial "Joined Company" timeline event on first profile view
-  // Only for own profile, only if timeline is truly empty after load.
   const seedAttempted = useRef(false);
   useEffect(() => {
     if (
@@ -68,21 +62,14 @@ const Employee360Page = () => {
       !profile ||
       !targetUid ||
       !currentUser?.uid ||
-      // Only seed own profile — not when HR views someone else
       targetUid !== currentUser.uid
     ) return;
 
     if (timeline.length === 0) {
       seedAttempted.current = true;
-      // Write a "Joined Company" event using real createdAt from the profile
       writeJoinedCompanyEvent(targetUid, currentUser.uid, currentRole || 'employee')
-        .then(() => {
-          // Re-fetch timeline to show the seeded event
-          return fetchActivityTimeline(targetUid, 50);
-        })
-        .catch(() => {
-          // Non-fatal — if seeding fails just show empty state
-        });
+        .then(() => fetchActivityTimeline(targetUid, 50))
+        .catch(() => {});
     }
   }, [loading, timelineLoading, profile, timeline, targetUid, currentUser, currentRole]);
 
@@ -95,11 +82,9 @@ const Employee360Page = () => {
       const url = await uploadProfilePicture(targetUid, file, (p) => setAvatarProgress(p));
       await updateEmployeeProfile(targetUid, { profilePicture: url });
       patchProfile({ profilePicture: url });
-      // Non-blocking timeline event — failure must not abort the upload flow
       writeProfilePictureUpdatedEvent(targetUid, currentUser?.uid, currentRole).catch(() => {});
       refreshProfile();
     } catch (err) {
-      // User-facing error only for the avatar upload; not a page crash
       alert(err.message || 'Avatar upload failed. Please try again.');
     } finally {
       setUploadingAvatar(false);
@@ -187,6 +172,7 @@ const Employee360Page = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
           <PersonalInformation profile={profile} currentRole={currentRole} />
           <JobInformation profile={profile} />
+          <EmergencyAndBankInfo profile={profile} />
           <SalaryStructure
             profile={profile}
             currentRole={currentRole}
@@ -197,6 +183,8 @@ const Employee360Page = () => {
 
         {/* Right Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+          <PerformanceAndGoals profile={profile} />
+          <SkillsAndCertifications profile={profile} />
           <AttendanceSummary summary={attendanceSummary} loading={attendanceLoading} />
           <LeaveHistory history={leaveHistory} />
           <DocumentsSection

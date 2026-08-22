@@ -38,6 +38,15 @@ const mergeWithSampleDefaults = (rawProfile) => {
     documents: (rawProfile.documents && rawProfile.documents.length > 0)
       ? rawProfile.documents
       : MOCK_PROFILE.documents,
+    skills: (rawProfile.skills && rawProfile.skills.length > 0)
+      ? rawProfile.skills
+      : MOCK_PROFILE.skills,
+    certifications: (rawProfile.certifications && rawProfile.certifications.length > 0)
+      ? rawProfile.certifications
+      : MOCK_PROFILE.certifications,
+    emergencyContact: rawProfile.emergencyContact || MOCK_PROFILE.emergencyContact,
+    bankDetails: rawProfile.bankDetails || MOCK_PROFILE.bankDetails,
+    performance: rawProfile.performance || MOCK_PROFILE.performance,
   };
 };
 
